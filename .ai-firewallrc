@@ -1,0 +1,52 @@
+{
+  "mode": "placeholder",
+  "format": "text",
+  "risk": false,
+  "exclude": [
+    "node_modules",
+    ".git",
+    "__pycache__",
+    "*.pyc",
+    ".vscode",
+    "dist",
+    "build",
+    ".opencode",
+    "safari",
+    "test-ext",
+    "advanced"
+  ],
+  "include": [
+    "*.js",
+    "*.ts",
+    "*.py",
+    "*.json",
+    "*.txt",
+    "*.md",
+    "*.html",
+    "*.css",
+    "*.yml",
+    "*.yaml",
+    "*.env",
+    "*.cfg",
+    "*.ini",
+    "*.conf"
+  ],
+  "rules": [
+    { "id": "routing", "enabled": false },
+    { "id": "ip", "conf": 0.4 }
+  ],
+  "customRules": [
+    {
+      "id": "my-api-token",
+      "name": "My App API Token",
+      "label": "MY_API_TOKEN",
+      "regex": "myapp-[a-zA-Z0-9]{16}",
+      "conf": 0.85,
+      "flags": "gi",
+      "faker": "() => 'myapp-' + Array(16).fill(0).map(() => 'abcdef0123456789'[Math.floor(Math.random()*16)]).join('')"
+    }
+  ],
+  "plugins": [
+    "./path/to/plugin.js"
+  ]
+}

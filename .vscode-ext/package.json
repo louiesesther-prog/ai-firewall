@@ -1,0 +1,57 @@
+{
+  "name": "ai-firewall",
+  "displayName": "AI Personal Firewall",
+  "description": "Detect and mask PII before sending to AI chat apps. 100% local.",
+  "version": "1.0.0",
+  "publisher": "ai-firewall",
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Security", "Programming Languages", "Other"],
+  "keywords": ["pii", "privacy", "security", "ai-chat", "masking"],
+  "icon": "icon.png",
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-firewall.scrubSelection",
+        "title": "AI Firewall: Scrub Selected Text"
+      },
+      {
+        "command": "ai-firewall.scrubDocument",
+        "title": "AI Firewall: Scrub Entire Document"
+      },
+      {
+        "command": "ai-firewall.restoreDocument",
+        "title": "AI Firewall: Restore Original Text"
+      },
+      {
+        "command": "ai-firewall.toggleMode",
+        "title": "AI Firewall: Toggle Mask Mode (Placeholder/Realistic)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ai-firewall.scrubSelection",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
+      }
+    ],
+    "configuration": {
+      "title": "AI Firewall",
+      "properties": {
+        "ai-firewall.maskMode": {
+          "type": "string",
+          "default": "placeholder",
+          "enum": ["placeholder", "realistic"],
+          "description": "Mask mode: placeholder ([TYPE_N]) or realistic (fake data)"
+        },
+        "ai-firewall.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable PII detection"
+        }
+      }
+    }
+  }
+}

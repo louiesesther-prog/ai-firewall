@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "AI Personal Firewall",
+  "version": "2.0.0",
+  "description": "Protect your privacy by scrubbing 30+ PII types from AI prompts. Luhn-validated CC, confidence scoring, realistic fakers.",
+  "homepage_url": "https://github.com/anomalyco/ai-firewall",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://copilot.microsoft.com/*",
+    "https://gemini.google.com/*",
+    "https://claude.ai/*",
+    "https://perplexity.ai/*",
+    "https://poe.com/*",
+    "https://groq.com/*",
+    "https://mistral.ai/*",
+    "https://cohere.ai/*",
+    "https://meta.ai/*",
+    "https://deepseek.com/*",
+    "https://you.com/*",
+    "https://kimi.ai/*",
+    "https://qwen.ai/*",
+    "https://jina.ai/*",
+    "https://phind.com/*",
+    "https://chat.google.com/*",
+    "https://ai.google.dev/*"
+  ],
+  "content_scripts": [{
+    "matches": [
+      "https://chat.openai.com/*",
+      "https://chatgpt.com/*",
+      "https://copilot.microsoft.com/*",
+      "https://gemini.google.com/*",
+      "https://claude.ai/*",
+      "https://perplexity.ai/*",
+      "https://poe.com/*",
+      "https://groq.com/*",
+      "https://mistral.ai/*",
+      "https://cohere.ai/*",
+      "https://meta.ai/*",
+      "https://deepseek.com/*",
+      "https://you.com/*",
+      "https://kimi.ai/*",
+      "https://qwen.ai/*",
+      "https://jina.ai/*",
+      "https://phind.com/*",
+      "https://chat.google.com/*",
+      "https://ai.google.dev/*"
+    ],
+    "js": ["content.js"],
+    "run_at": "document_end"
+  }],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  }
+}

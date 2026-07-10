@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Personal Firewall — Protect Your Privacy in AI Chat</title>
+<meta name="description" content="Automatically detect and mask 30+ PII types in AI chat apps. 100% local. Free, open source.">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --bg: #0a0a1a; --bg2: #12122a; --bg3: #1a1a3e; --card: #16163a; --primary: #667eea; --primary-light: #8b9cf7; --accent: #00d9ff; --text: #e8e8f0; --text2: #8888aa; --text3: #555577; --border: #2a2a5a; --gradient: linear-gradient(135deg, #667eea, #764ba2); }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Nav ── */
+nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,26,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+.nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
+.nav-logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; text-decoration: none; color: var(--text); }
+.nav-logo svg { width: 28px; height: 28px; }
+.nav-links { display: flex; gap: 24px; align-items: center; }
+.nav-links a { color: var(--text2); text-decoration: none; font-size: 14px; transition: color .2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta { background: var(--gradient); color: white !important; padding: 8px 20px; border-radius: 8px; font-weight: 600; }
+
+/* ── Hero ── */
+.hero { padding: 80px 0 60px; text-align: center; }
+.hero-badge { display: inline-block; background: rgba(102,126,234,0.15); color: var(--primary-light); padding: 6px 16px; border-radius: 20px; font-size: 13px; margin-bottom: 20px; border: 1px solid rgba(102,126,234,0.3); }
+.hero h1 { font-size: clamp(36px,5vw,60px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; background: linear-gradient(135deg, #fff 30%, #667eea 70%, #00d9ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: clamp(16px,2vw,20px); color: var(--text2); max-width: 640px; margin: 0 auto 32px; }
+.hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 600; text-decoration: none; transition: all .2s; cursor: pointer; }
+.btn-primary { background: var(--gradient); color: white; box-shadow: 0 4px 20px rgba(102,126,234,0.4); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(102,126,234,0.5); }
+.btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); transform: translateY(-2px); }
+.btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn-outline:hover { background: rgba(0,217,255,0.1); }
+.hero-stats { display: flex; gap: 40px; justify-content: center; margin-top: 40px; flex-wrap: wrap; }
+.stat-item { text-align: center; }
+.stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+.stat-lbl { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+/* ── Sections ── */
+section { padding: 70px 0; }
+.section-title { text-align: center; font-size: clamp(28px,3.5vw,40px); font-weight: 700; margin-bottom: 12px; }
+.section-sub { text-align: center; color: var(--text2); font-size: 16px; max-width: 600px; margin: 0 auto 48px; }
+
+/* ── How It Works ── */
+.steps { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 24px; }
+.step { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; text-align: center; }
+.step-num { width: 44px; height: 44px; border-radius: 12px; background: var(--gradient); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 18px; font-weight: 700; color: white; }
+.step h3 { font-size: 17px; margin-bottom: 8px; }
+.step p { font-size: 14px; color: var(--text2); }
+
+/* ── Features ── */
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 20px; }
+.feature { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px; }
+.feature-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 14px; }
+.feature h3 { font-size: 16px; margin-bottom: 6px; }
+.feature p { font-size: 14px; color: var(--text2); }
+
+/* ── PII Types ── */
+.pii-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 10px; }
+.pii-tag { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text2); text-align: center; }
+.pii-tag strong { color: var(--text); display: block; font-size: 14px; margin-bottom: 2px; }
+
+/* ── Platforms ── */
+.platforms-scroll { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.platform { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 22px; font-size: 14px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.platform .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+
+/* ── CTA ── */
+.cta { text-align: center; background: var(--gradient); border-radius: 20px; padding: 60px 40px; margin: 40px 0; }
+.cta h2 { font-size: 32px; margin-bottom: 12px; color: white; }
+.cta p { color: rgba(255,255,255,0.8); margin-bottom: 24px; }
+.cta .btn-primary { background: white; color: #667eea; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+.cta .btn-primary:hover { box-shadow: 0 6px 30px rgba(0,0,0,0.3); }
+
+/* ── Footer ── */
+footer { border-top: 1px solid var(--border); padding: 30px 0; text-align: center; color: var(--text3); font-size: 13px; }
+footer a { color: var(--primary-light); text-decoration: none; }
+
+/* ── Responsive ── */
+@media (max-width:768px) {
+  .nav-links a:not(.nav-cta) { display: none; }
+  .hero { padding: 50px 0 40px; }
+  section { padding: 50px 0; }
+  .features-grid { grid-template-columns: 1fr; }
+  .cta { padding: 40px 24px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="nav-logo">
+      <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="5" fill="url(#lg)"/><path d="M14 6 L22 14 L14 22 L6 14 Z" fill="white" opacity=".9"/><rect x="10" y="14" width="8" height="8" fill="white" opacity=".9"/><defs><linearGradient id="lg" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#667eea"/><stop offset="1" stop-color="#764ba2"/></linearGradient></defs></svg>
+      AI Firewall
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How It Works</a>
+      <a href="#pii">PII Types</a>
+      <a href="https://github.com/anomalyco/ai-firewall" target="_blank">GitHub</a>
+      <a href="index.html" class="nav-cta">Try Demo</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">&#9679; 100% Local Processing &mdash; No Data Leaves Your Browser</div>
+    <h1>Privacy Protection<br>for AI Chat</h1>
+    <p>Automatically detect and mask 30+ types of sensitive data before it reaches AI providers. Free, open source, and entirely client-side.</p>
+    <div class="hero-btns">
+      <a href="index.html" class="btn btn-primary">&#9654; Try Live Demo</a>
+      <a href="#install" class="btn btn-secondary">&#11015; Install Extension</a>
+      <a href="https://github.com/anomalyco/ai-firewall" target="_blank" class="btn btn-outline">GitHub</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item"><div class="stat-num">30+</div><div class="stat-lbl">PII Types Detected</div></div>
+      <div class="stat-item"><div class="stat-num">19</div><div class="stat-lbl">AI Platforms</div></div>
+      <div class="stat-item"><div class="stat-num">4</div><div class="stat-lbl">Browser Targets</div></div>
+      <div class="stat-item"><div class="stat-num">100%</div><div class="stat-lbl">Local & Free</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="container">
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-sub">Transparent protection that works automatically in the background.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Type Your Prompt</h3>
+        <p>Write naturally in any supported AI chat app &mdash; ChatGPT, Claude, Gemini, Copilot, and more.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Auto-Detect &amp; Mask</h3>
+        <p>The extension scans for 30+ PII patterns with Luhn validation and replaces them with placeholders or fake data.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Send Safely</h3>
+        <p>Only the scrubbed text reaches the AI provider. Your real data never leaves your browser.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Auto-Restore</h3>
+        <p>When the AI responds, original values are restored transparently. You see everything as normal.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="background:var(--bg2)">
+  <div class="container">
+    <h2 class="section-title">Why AI Personal Firewall?</h2>
+    <p class="section-sub">Comprehensive privacy protection built for the AI era.</p>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(102,126,234,0.2)">&#128274;</div>
+        <h3>30+ PII Types</h3>
+        <p>Email, phone, SSN, credit cards (Luhn-validated), IPs, crypto wallets, passwords, API keys, tokens, and 10 international formats.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(0,217,255,0.2)">&#9888;</div>
+        <h3>Smart Confidence Scoring</h3>
+        <p>Every detection scores 0.0&ndash;1.0. Context heuristics reduce false positives for version numbers, math expressions, product codes, and more.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(34,197,94,0.2)">&#9989;</div>
+        <h3>Luhn Checksum Validation</h3>
+        <p>Distinguishes real credit card numbers from random digits. Valid cards get 0.95 confidence; invalid drop to 0.3.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(249,115,22,0.2)">&#128200;</div>
+        <h3>Live Dashboard</h3>
+        <p>Monitor all detection activity from the toolbar popup &mdash; requests scrubbed, PII breakdown, and per-type stats.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(168,85,247,0.2)">&#127912;</div>
+        <h3>Realistic Fake Data</h3>
+        <p>Optional realistic masking mode generates convincing fake data instead of placeholders for even more natural-looking prompts.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:rgba(236,72,153,0.2)">&#128187;</div>
+        <h3>CLI + REST API</h3>
+        <p>Also available as a command-line tool for batch processing, CI/CD pipelines, and a local REST API server for integration.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pii">
+  <div class="container">
+    <h2 class="section-title">Detected PII Types</h2>
+    <p class="section-sub">30+ patterns across 9 categories with international support.</p>
+    <div class="pii-grid">
+      <div class="pii-tag"><strong>Email</strong>user@example.com</div>
+      <div class="pii-tag"><strong>Phone</strong>+1 (555) 123-4567</div>
+      <div class="pii-tag"><strong>SSN</strong>123-45-6789</div>
+      <div class="pii-tag"><strong>Credit Card</strong>4111-1111-1111-1111</div>
+      <div class="pii-tag"><strong>IP Address</strong>192.168.1.1</div>
+      <div class="pii-tag"><strong>Password</strong>password=...</div>
+      <div class="pii-tag"><strong>API Key</strong>sk-...</div>
+      <div class="pii-tag"><strong>Crypto Wallet</strong>0x...</div>
+      <div class="pii-tag"><strong>MAC Address</strong>aa:bb:cc:dd:ee:ff</div>
+      <div class="pii-tag"><strong>DOB</strong>01/15/1990</div>
+      <div class="pii-tag"><strong>Passport</strong>A12345678</div>
+      <div class="pii-tag"><strong>Driver License</strong>DL1234567</div>
+      <div class="pii-tag"><strong>Street Address</strong>123 Main St</div>
+      <div class="pii-tag"><strong>Bank Account</strong>acct# 12345678</div>
+      <div class="pii-tag"><strong>Routing #</strong>123456789</div>
+      <div class="pii-tag"><strong>JWT Token</strong>eyJ...</div>
+      <div class="pii-tag"><strong>AWS Key</strong>AKIA...</div>
+      <div class="pii-tag"><strong>GitHub Token</strong>ghp_...</div>
+      <div class="pii-tag"><strong>Slack Token</strong>xoxb-...</div>
+      <div class="pii-tag"><strong>UK NI</strong>AB123456C</div>
+      <div class="pii-tag"><strong>UK NHS</strong>123 456 7890</div>
+      <div class="pii-tag"><strong>India Aadhaar</strong>1234 5678 9012</div>
+      <div class="pii-tag"><strong>India PAN</strong>ABCDE1234Z</div>
+      <div class="pii-tag"><strong>China ID</strong>110101199001011234</div>
+      <div class="pii-tag"><strong>Canada SIN</strong>123 456 789</div>
+      <div class="pii-tag"><strong>Australia TFN</strong>123 456 789</div>
+      <div class="pii-tag"><strong>Japan My Number</strong>1234-5678-9012</div>
+      <div class="pii-tag"><strong>Brazil CPF</strong>123.456.789-00</div>
+      <div class="pii-tag"><strong>Brazil CNPJ</strong>12.345.678/0001-90</div>
+      <div class="pii-tag"><strong>France INSEE</strong>1 99 99 99 999</div>
+    </div>
+  </div>
+</section>
+
+<section id="platforms" style="background:var(--bg2)">
+  <div class="container">
+    <h2 class="section-title">Supported AI Platforms</h2>
+    <p class="section-sub">Works automatically with all major AI chat providers.</p>
+    <div class="platforms-scroll">
+      <span class="platform"><span class="dot"></span>ChatGPT</span>
+      <span class="platform"><span class="dot"></span>Copilot</span>
+      <span class="platform"><span class="dot"></span>Gemini</span>
+      <span class="platform"><span class="dot"></span>Claude</span>
+      <span class="platform"><span class="dot"></span>Perplexity</span>
+      <span class="platform"><span class="dot"></span>Poe</span>
+      <span class="platform"><span class="dot"></span>Groq</span>
+      <span class="platform"><span class="dot"></span>Mistral</span>
+      <span class="platform"><span class="dot"></span>Cohere</span>
+      <span class="platform"><span class="dot"></span>Meta AI</span>
+      <span class="platform"><span class="dot"></span>DeepSeek</span>
+      <span class="platform"><span class="dot"></span>You.com</span>
+      <span class="platform"><span class="dot"></span>Kimi</span>
+      <span class="platform"><span class="dot"></span>Qwen</span>
+      <span class="platform"><span class="dot"></span>Jina</span>
+      <span class="platform"><span class="dot"></span>Phind</span>
+      <span class="platform"><span class="dot"></span>Google AI Chat</span>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="container">
+    <h2 class="section-title">Get Started</h2>
+    <p class="section-sub">Available on all major browsers, plus CLI and REST API.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">&#127758;</div>
+        <h3 style="margin-bottom:6px">Chrome / Edge</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Load unpacked from <code>extension/</code> folder</p>
+        <p style="font-size:12px;color:var(--text3)">Chrome Web Store &amp; Edge Add-ons coming soon</p>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">&#128025;</div>
+        <h3 style="margin-bottom:6px">Firefox</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Load temporary from <code>firefox/</code> folder</p>
+        <p style="font-size:12px;color:var(--text3)">AMO listing coming soon</p>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">&#128188;</div>
+        <h3 style="margin-bottom:6px">CLI Tool</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px"><code>npx ai-firewall scan ./docs</code></p>
+        <a href="https://github.com/anomalyco/ai-firewall" target="_blank" style="font-size:13px;color:var(--primary-light);text-decoration:none">Install via npm &rarr;</a>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">&#127760;</div>
+        <h3 style="margin-bottom:6px">REST API</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Local API server with 9 endpoints</p>
+        <a href="index.html" style="font-size:13px;color:var(--primary-light);text-decoration:none">Try the web demo &rarr;</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="cta">
+    <h2>Try It Now</h2>
+    <p>Test the PII detection engine directly in your browser. No installation required.</p>
+    <a href="index.html" class="btn btn-primary">&#9654; Launch Interactive Demo</a>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p><a href="https://github.com/anomalyco/ai-firewall" target="_blank">AI Personal Firewall</a> &mdash; MIT Licensed &mdash; Built with &#9829; for privacy</p>
+    <p style="margin-top:8px"><a href="index.html">Demo</a> &middot; <a href="https://github.com/anomalyco/ai-firewall">GitHub</a> &middot; <a href="extension/PRIVACY.md">Privacy Policy</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

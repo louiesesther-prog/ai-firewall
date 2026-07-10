@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Personal Firewall - Protect Your Privacy</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="AI Personal Firewall - Detect and mask PII before sending to AI apps. 100% local.">
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #ffffff; --text2: #94a3b8; --text3: #64748b;
+    --primary: #00d4aa; --primary-dark: #00b894;
+    --border: rgba(255,255,255,0.1); --shadow: rgba(0,0,0,0.3);
+    --error: #ef4444; --success: #22c55e; --warn: #f59e0b;
+    --email-color: #fca5a5; --email-bg: rgba(239,68,68,0.2);
+    --phone-color: #93c5fd; --phone-bg: rgba(59,130,246,0.2);
+    --cc-color: #d8b4fe; --cc-bg: rgba(168,85,247,0.2);
+    --ssn-color: #fde047; --ssn-bg: rgba(234,179,8,0.2);
+    --pwd-color: #fca5a5; --pwd-bg: rgba(239,68,68,0.2);
+    --ip-color: #86efac; --ip-bg: rgba(34,197,94,0.2);
+    --apikey-color: #a5b4fc; --apikey-bg: rgba(99,102,241,0.2);
+    --crypto-color: #f0abfc; --crypto-bg: rgba(192,132,252,0.2);
+    --mac-color: #67e8f9; --mac-bg: rgba(6,182,212,0.2);
+    --dob-color: #fcd34d; --dob-bg: rgba(251,191,36,0.2);
+    --routing-color: #6ee7b7; --routing-bg: rgba(52,211,153,0.2);
+    --passport-color: #f9a8d4; --passport-bg: rgba(244,114,182,0.2);
+    --license-color: #cbd5e1; --license-bg: rgba(148,163,184,0.2);
+    --address-color: #7dd3fc; --address-bg: rgba(56,189,248,0.2);
+    --bank-color: #a78bfa; --bank-bg: rgba(167,139,250,0.2);
+    --i18n-color: #fbbf24; --i18n-bg: rgba(251,191,36,0.2);
+}
+[data-theme="light"] {
+    --bg: #f8fafc; --bg2: #ffffff; --bg3: #e2e8f0;
+    --text: #0f172a; --text2: #475569; --text3: #94a3b8;
+    --border: rgba(0,0,0,0.1); --shadow: rgba(0,0,0,0.1);
+}
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; transition: background .3s, color .3s; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+header { padding: 20px 0; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+.header-content { display: flex; justify-content: space-between; align-items: center; }
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo svg { width: 36px; height: 36px; }
+.logo h1 { font-size: 22px; font-weight: 700; background: linear-gradient(135deg, var(--primary), #00f5c4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.theme-btn { background: none; border: 1px solid var(--border); color: var(--text2); width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: .2s; }
+.theme-btn:hover { background: var(--bg2); }
+nav { display: flex; gap: 24px; }
+nav a { color: var(--text3); text-decoration: none; font-weight: 500; font-size: 14px; transition: color .3s; }
+nav a:hover { color: var(--text); }
+
+.hero { padding: 64px 0 48px; text-align: center; }
+.hero h2 { font-size: 48px; font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+.hero h2 span { background: linear-gradient(135deg, var(--primary), #00f5c4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: 18px; color: var(--text2); max-width: 600px; margin: 0 auto 36px; }
+
+.actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; background: var(--primary); color: #0f172a; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: all .3s; text-decoration: none; }
+.btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+.btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+.btn-outline:hover { background: var(--primary); color: #0f172a; }
+.btn-sm { padding: 8px 16px; font-size: 13px; }
+.btn-danger { background: var(--error); color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-warn { background: var(--warn); color: #0f172a; }
+.btn-warn:hover { background: #d97706; }
+.btn-icon { padding: 8px 12px; font-size: 13px; }
+
+.demo-section { padding: 48px 0; }
+.section-title { font-size: 28px; text-align: center; margin-bottom: 32px; }
+.demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.demo-card { background: var(--bg2); border-radius: 12px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); }
+.demo-card h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 12px; }
+
+/* Highlight container */
+.highlight-container { position: relative; width: 100%; }
+.highlight-backdrop {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    padding: 14px; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-wrap: break-word;
+    overflow: hidden; pointer-events: none; color: transparent;
+    border: 1px solid transparent; border-radius: 8px;
+}
+.highlight-backdrop mark { padding: 1px 0; border-radius: 3px; color: transparent; }
+.highlight-backdrop mark.email { background: var(--email-bg); border-bottom: 2px solid var(--email-color); }
+.highlight-backdrop mark.phone { background: var(--phone-bg); border-bottom: 2px solid var(--phone-color); }
+.highlight-backdrop mark.cc { background: var(--cc-bg); border-bottom: 2px solid var(--cc-color); }
+.highlight-backdrop mark.ssn { background: var(--ssn-bg); border-bottom: 2px solid var(--ssn-color); }
+.highlight-backdrop mark.password { background: var(--pwd-bg); border-bottom: 2px solid var(--pwd-color); }
+.highlight-backdrop mark.ip { background: var(--ip-bg); border-bottom: 2px solid var(--ip-color); }
+.highlight-backdrop mark.apikey { background: var(--apikey-bg); border-bottom: 2px solid var(--apikey-color); }
+.highlight-backdrop mark.crypto { background: var(--crypto-bg); border-bottom: 2px solid var(--crypto-color); }
+.highlight-backdrop mark.mac { background: var(--mac-bg); border-bottom: 2px solid var(--mac-color); }
+.highlight-backdrop mark.dob { background: var(--dob-bg); border-bottom: 2px solid var(--dob-color); }
+.highlight-backdrop mark.passport { background: var(--passport-bg); border-bottom: 2px solid var(--passport-color); }
+.highlight-backdrop mark.license { background: var(--license-bg); border-bottom: 2px solid var(--license-color); }
+.highlight-backdrop mark.address { background: var(--address-bg); border-bottom: 2px solid var(--address-color); }
+.highlight-backdrop mark.bank { background: var(--bank-bg); border-bottom: 2px solid var(--bank-color); }
+.highlight-backdrop mark.i18n { background: var(--i18n-bg); border-bottom: 2px solid var(--i18n-color); }
+
+.highlight-container textarea {
+    width: 100%; min-height: 200px; background: transparent;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px; resize: vertical; line-height: 1.7; position: relative;
+}
+.highlight-container textarea:focus { outline: none; border-color: var(--primary); }
+.highlight-container textarea::placeholder { color: var(--text3); }
+
+.card-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.risk-badge { display: none; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.risk-badge.visible { display: inline-flex; }
+.risk-badge.low { background: rgba(34,197,94,0.2); color: var(--success); }
+.risk-badge.medium { background: rgba(245,158,11,0.2); color: var(--warn); }
+.risk-badge.high { background: rgba(239,68,68,0.2); color: var(--error); }
+
+.live-indicator { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; background: var(--bg3); color: var(--text2); min-height: 36px; }
+.live-indicator .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.live-indicator .dot.active { background: var(--warn); animation: pulse 1s infinite; }
+.live-indicator .dot.danger { background: var(--error); }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+.btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.mode-toggle { display: flex; gap: 4px; background: var(--bg3); padding: 3px; border-radius: 8px; }
+.mode-btn { padding: 6px 14px; border: none; background: transparent; color: var(--text3); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: .2s; }
+.mode-btn.active { background: var(--primary); color: #0f172a; }
+
+.detected-pii { margin-top: 12px; }
+.detected-pii h5 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 8px; }
+.pii-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.pii-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.pii-tag .confidence { font-size: 10px; opacity: .7; font-weight: 400; }
+.pii-tag .type-badge { font-weight: 700; text-transform: uppercase; font-size: 10px; background: rgba(0,0,0,0.2); padding: 1px 5px; border-radius: 3px; }
+.pii-tag.email { background: var(--email-bg); color: var(--email-color); }
+.pii-tag.phone { background: var(--phone-bg); color: var(--phone-color); }
+.pii-tag.cc { background: var(--cc-bg); color: var(--cc-color); }
+.pii-tag.ssn { background: var(--ssn-bg); color: var(--ssn-color); }
+.pii-tag.password { background: var(--pwd-bg); color: var(--pwd-color); }
+.pii-tag.ip { background: var(--ip-bg); color: var(--ip-color); }
+.pii-tag.apikey { background: var(--apikey-bg); color: var(--apikey-color); }
+.pii-tag.crypto { background: var(--crypto-bg); color: var(--crypto-color); }
+.pii-tag.mac { background: var(--mac-bg); color: var(--mac-color); }
+.pii-tag.dob { background: var(--dob-bg); color: var(--dob-color); }
+.pii-tag.routing { background: var(--routing-bg); color: var(--routing-color); }
+.pii-tag.passport { background: var(--passport-bg); color: var(--passport-color); }
+.pii-tag.license { background: var(--license-bg); color: var(--license-color); }
+.pii-tag.address { background: var(--address-bg); color: var(--address-color); }
+.pii-tag.bank { background: var(--bank-bg); color: var(--bank-color); }
+.pii-tag.i18n { background: var(--i18n-bg); color: var(--i18n-color); }
+
+.upload-zone { margin-top: 12px; padding: 16px; border: 2px dashed var(--border); border-radius: 8px; text-align: center; cursor: pointer; transition: .2s; font-size: 13px; color: var(--text3); }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: rgba(0,212,170,0.05); }
+.upload-zone input { display: none; }
+
+.collapse-section { margin-top: 16px; }
+.collapse-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text2); transition: .2s; }
+.collapse-header:hover { border-color: var(--primary); }
+.collapse-header .arrow { transition: transform .2s; font-size: 10px; }
+.collapse-header.open .arrow { transform: rotate(90deg); }
+.collapse-body { padding: 14px; background: var(--bg2); border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; display: none; }
+.collapse-body.open { display: block; }
+.rule-form { display: grid; grid-template-columns: 1fr 2fr 80px 1fr; gap: 8px; align-items: end; }
+.rule-form label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 4px; }
+.rule-form input { width: 100%; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; }
+.rule-form input:focus { outline: none; border-color: var(--primary); }
+.rule-list { margin-top: 12px; max-height: 300px; overflow-y: auto; }
+.rule-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+.rule-item .name { font-weight: 600; min-width: 100px; font-size: 12px; }
+.rule-item .regex { color: var(--text3); font-family: monospace; font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rule-item .conf { font-size: 11px; color: var(--text3); min-width: 40px; }
+.rule-item .actions { margin-left: auto; display: flex; gap: 6px; }
+.rule-item .toggle-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px; }
+.rule-item .del-btn { background: none; border: none; cursor: pointer; color: var(--error); font-size: 16px; padding: 2px; }
+
+.history-list { max-height: 300px; overflow-y: auto; }
+.history-item { padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: .2s; }
+.history-item:hover { border-color: var(--primary); }
+.history-item .h-time { font-size: 11px; color: var(--text3); }
+.history-item .h-input { font-size: 12px; color: var(--text2); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-item .h-count { font-size: 11px; color: var(--primary); margin-top: 2px; }
+
+.stats-section { padding: 60px 0; background: linear-gradient(180deg, transparent, rgba(0,212,170,0.03)); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-top: 32px; }
+.stat-card { text-align: center; padding: 24px 16px; background: var(--bg2); border-radius: 12px; border: 1px solid var(--border); }
+.stat-card .number { font-size: 36px; font-weight: 800; color: var(--primary); }
+.stat-card .label { color: var(--text3); font-size: 12px; margin-top: 6px; }
+
+.features { padding: 60px 0; }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feature-card { padding: 28px; background: var(--bg2); border-radius: 12px; border: 1px solid var(--border); }
+.feature-icon { width: 44px; height: 44px; background: rgba(0,212,170,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+.feature-icon svg { width: 22px; height: 22px; color: var(--primary); }
+.feature-card h4 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.feature-card p { color: var(--text2); font-size: 13px; }
+
+.platforms { padding: 60px 0; text-align: center; }
+.platform-logos { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 32px; }
+.platform { padding: 10px 24px; background: var(--bg2); border-radius: 8px; font-weight: 600; color: var(--text3); border: 1px solid var(--border); font-size: 13px; }
+.platform.active { border-color: var(--primary); color: var(--primary); }
+
+.info-box { padding: 14px; background: rgba(0,212,170,0.08); border-radius: 8px; border-left: 4px solid var(--primary); margin-top: 16px; font-size: 13px; color: var(--text2); }
+
+footer { padding: 36px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text3); font-size: 13px; }
+
+@media (max-width:768px) {
+    .hero h2 { font-size: 32px; }
+    .demo-grid { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+    nav { display: none; }
+    .rule-form { grid-template-columns: 1fr; }
+    .header-right { gap: 8px; }
+}
+</style>
+</head>
+<body>
+<header>
+    <div class="container header-content">
+        <div class="logo">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 4L8 12V28L20 36L32 28V12L20 4Z" stroke="#00d4aa" stroke-width="2" fill="none"/><path d="M20 4V36M8 12L32 28M32 12L8 28" stroke="#00d4aa" stroke-width="2"/><circle cx="20" cy="20" r="6" fill="#00d4aa"/></svg>
+            <h1>AI Firewall</h1>
+        </div>
+        <div class="header-right">
+            <nav><a href="landing.html">&#8592; Home</a><a href="#demo">Demo</a><a href="#features">Features</a><a href="#stats">Stats</a></nav>
+            <button class="theme-btn" id="themeToggle" title="Toggle theme">&#9789;</button>
+            <button class="btn btn-sm" onclick="installExtension()">Install Extension</button>
+        </div>
+    </div>
+</header>
+
+<section class="hero">
+    <div class="container">
+        <h2>Protect Your Privacy<br><span>When Using AI</span></h2>
+        <p>Automatically detect and mask 25+ types of PII before sending to AI apps. 100% local, never stores your data.</p>
+        <div class="actions">
+            <a href="#demo" class="btn">Try Demo</a>
+            <button class="btn btn-outline" onclick="document.querySelector('.upload-zone input').click()">Upload File</button>
+        </div>
+    </div>
+</section>
+
+<section class="demo-section" id="demo">
+    <div class="container">
+        <h3 class="section-title">PII Detection Demo</h3>
+        <div class="demo-grid">
+            <div class="demo-card">
+                <div class="card-header-row">
+                    <h4>Input</h4>
+                    <span class="risk-badge" id="riskBadge">Risk: <span id="riskScore">0</span></span>
+                </div>
+                <div class="highlight-container">
+                    <div class="highlight-backdrop" id="highlightBackdrop"></div>
+                    <textarea id="inputText" placeholder="Enter text with any PII...
+
+Examples:
+  - Email: john.doe@example.com
+  - Phone: 555-123-4567
+  - SSN: 123-45-6789
+  - Card: 4111-1111-1111-1111
+  - IP: 192.168.1.1
+  - Wallet: 0x71C7656EC7ab9b618e7dD32a6D9C6e1f3B3b6C6e
+  - UK NI: AB123456C  |  IN Aadhaar: 1234 5678 9012"></textarea>
+                </div>
+                <div class="live-indicator" id="liveIndicator">
+                    <span class="dot" id="liveDot"></span>
+                    <span id="liveText">Type to see live detection</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn" onclick="processText()">Scrub PII</button>
+                    <button class="btn btn-outline" onclick="clearDemo()">Clear</button>
+                    <button class="btn btn-outline btn-icon" onclick="copyOutput()">Copy</button>
+                    <button class="btn btn-outline btn-icon" onclick="downloadOutput()">Download</button>
+                </div>
+                <div class="btn-row" style="margin-top:6px">
+                    <div class="mode-toggle" id="modeToggle">
+                        <button class="mode-btn active" data-mode="placeholder" onclick="setMaskMode('placeholder')">Placeholder</button>
+                        <button class="mode-btn" data-mode="realistic" onclick="setMaskMode('realistic')">Realistic</button>
+                    </div>
+                    <button class="btn btn-outline btn-sm" onclick="exportJSON()">JSON</button>
+                    <button class="btn btn-outline btn-sm" onclick="exportCSV()">CSV</button>
+                </div>
+                <div class="upload-zone" id="uploadZone">
+                    Drop a .txt, .csv or .json file here, or click to browse
+                    <input type="file" id="fileInput" accept=".txt,.csv,.json">
+                </div>
+            </div>
+            <div class="demo-card">
+                <h4>Output (PII Masked)</h4>
+                <textarea id="outputText" readonly placeholder="Scrubbed output will appear here..." style="width:100%;min-height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:13px;resize:vertical;line-height:1.7"></textarea>
+                <div class="detected-pii" id="detectedPii" style="display:none">
+                    <h5>Detected PII <span id="piiCountBadge" style="color:var(--warn);font-size:11px"></span></h5>
+                    <div class="pii-tags" id="piiTags"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="collapse-section">
+            <div class="collapse-header" id="rulesHeader">
+                <span class="arrow">&#9654;</span> Custom Detection Rules
+                <span style="margin-left:auto;font-weight:400;font-size:11px;color:var(--text3)" id="rulesCount">0 custom</span>
+            </div>
+            <div class="collapse-body" id="rulesBody">
+                <div class="rule-form" id="ruleForm">
+                    <div><label>Rule Name</label><input id="ruleName" placeholder="e.g. GitLab Token"></div>
+                    <div><label>Regex Pattern</label><input id="ruleRegex" placeholder="e.g. glpat-[a-zA-Z0-9_-]{20,}"></div>
+                    <div><label>Confidence</label><input id="ruleConf" placeholder="0.8" value="0.8"></div>
+                    <div><button class="btn btn-sm" onclick="addCustomRule()" style="white-space:nowrap">+ Add</button></div>
+                </div>
+                <div class="rule-list" id="ruleList"></div>
+            </div>
+        </div>
+
+        <div class="collapse-section">
+            <div class="collapse-header" id="historyHeader">
+                <span class="arrow">&#9654;</span> History
+                <span style="margin-left:auto;font-weight:400;font-size:11px;color:var(--text3)" id="historyCount">0 entries</span>
+            </div>
+            <div class="collapse-body" id="historyBody">
+                <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+                    <button class="btn btn-sm btn-outline" onclick="clearHistory()">Clear</button>
+                    <span style="font-size:12px;color:var(--text3)" id="historySummary"></span>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>Features:</strong> 30+ PII types &bull; Luhn CC validation &bull; Confidence scoring &bull; Inline highlighting &bull; Risk score &bull; Realistic fake masking &bull; Export JSON/CSV/HTML &bull; Custom rules &bull; i18n formats (UK, India, China, Japan, Brazil, France, Australia, Canada) &bull; Token detection (JWT, AWS, GitHub, Slack) &bull; History &bull; Bulk upload &bull; Dark mode &bull; REST API server &bull; Watch mode &bull; Auto-fix
+        </div>
+    </div>
+</section>
+
+<section class="features" id="features">
+    <div class="container">
+        <h3 class="section-title">Features</h3>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                <h4>25+ PII Types</h4>
+                <p>Email, phone, SSN, credit card, passwords, API keys, IPs, crypto wallets, MAC, DOB, passport, license, address, bank, and international formats (UK, India, China, Australia, Canada).</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div>
+                <h4>Luhn CC Validation</h4>
+                <p>Credit cards are verified using the Luhn algorithm. Invalid check digits are flagged with reduced confidence, cutting false positives.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                <h4>Realistic Masking</h4>
+                <p>Switch between placeholder mode [TYPE_N] and realistic fake data mode. Fake data preserves format so AI responses still make sense.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+                <h4>Inline Highlighting</h4>
+                <p>PII is highlighted with colored underlines as you type. Each PII type has a distinct color so you can see exactly what will be masked.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v4"/></svg></div>
+                <h4>Risk Score &amp; Export</h4>
+                <p>Aggregate 0-100 risk score based on PII sensitivity. Export results as JSON or CSV for auditing and compliance.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                <h4>100% Local &amp; PWA</h4>
+                <p>All processing in your browser. Installable as a Progressive Web App for offline use. No data ever leaves your machine.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                <h4>REST API &amp; CLI Server</h4>
+                <p>Start a local REST API with <code>cli.js serve</code> &mdash; POST /scrub, POST /scan, GET /rules, GET /health. Integrate PII detection into any pipeline.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section" id="stats">
+    <div class="container">
+        <h3 class="section-title">Protection Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="number" id="statRequests">0</div><div class="label">Requests Scrubbed</div></div>
+            <div class="stat-card"><div class="number" id="statPii">0</div><div class="label">PII Items Masked</div></div>
+            <div class="stat-card"><div class="number" id="statTypes">0</div><div class="label">PII Types Detected</div></div>
+            <div class="stat-card"><div class="number" id="statSessions">0</div><div class="label">Total Sessions</div></div>
+        </div>
+    </div>
+</section>
+
+<section class="platforms">
+    <div class="container">
+        <h3 class="section-title">Supported Platforms</h3>
+        <div class="platform-logos">
+            <div class="platform active">ChatGPT</div>
+            <div class="platform active">Claude</div>
+            <div class="platform active">Gemini</div>
+            <div class="platform active">Copilot</div>
+            <div class="platform active">Perplexity</div>
+            <div class="platform active">Mistral</div>
+            <div class="platform">DeepSeek</div>
+            <div class="platform">Groq</div>
+            <div class="platform">Meta AI</div>
+            <div class="platform">Poe</div>
+            <div class="platform">Cohere</div>
+            <div class="platform">You.com</div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>AI Personal Firewall &mdash; Open Source Privacy Protection</p>
+        <p style="margin-top:6px;font-size:12px;">MIT License &mdash; Use freely, modify as needed</p>
+    </div>
+</footer>
+
+<script>
+// ── LUHN ALGORITHM ─────────────────────────────────────────────
+function luhnCheck(num) {
+    const digits = num.replace(/\D/g, '');
+    if (digits.length < 13 || digits.length > 19) return false;
+    let sum = 0, alt = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+        let n = parseInt(digits[i], 10);
+        if (alt) { n *= 2; if (n > 9) n -= 9; }
+        sum += n; alt = !alt;
+    }
+    return sum % 10 === 0;
+}
+
+// ── FAKE DATA GENERATOR ────────────────────────────────────────
+const fakers = {
+    EMAIL_ADDR: () => 'user' + (Math.floor(Math.random() * 9000) + 1000) + '@example.com',
+    PHONE_NUM: () => '555-' + (Math.floor(Math.random() * 900) + 100) + '-' + (Math.floor(Math.random() * 9000) + 1000),
+    CC_NUM: () => {
+        const prefixes = ['4','51','52','53','54','55','6011','65'];
+        const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+        let n = p;
+        for (let i = 0; i < 16 - p.length; i++) n += Math.floor(Math.random() * 10);
+        return n;
+    },
+    SSN_NUM: () => (Math.floor(Math.random() * 900) + 100) + '-' + (Math.floor(Math.random() * 90) + 10) + '-' + (Math.floor(Math.random() * 9000) + 1000),
+    IP_ADDR: () => Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256),
+    PWD_VAL: () => '[REDACTED]',
+    APIKEY: () => 'sk-' + Array(24).fill(0).map(() => 'abcdef0123456789'[Math.floor(Math.random() * 16)]).join(''),
+    CRYPTO: () => '0x' + Array(40).fill(0).map(() => 'abcdef0123456789'[Math.floor(Math.random() * 16)]).join(''),
+    MAC_ADDR: () => Array(6).fill(0).map(() => ('0' + Math.floor(Math.random() * 256).toString(16)).slice(-2)).join(':'),
+    DOB: () => (Math.floor(Math.random() * 12) + 1).toString().padStart(2,'0') + '/' + (Math.floor(Math.random() * 28) + 1).toString().padStart(2,'0') + '/' + (Math.floor(Math.random() * 30 + 1970)),
+    PASSPORT: () => String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
+    LICENSE: () => 'DL' + Math.floor(Math.random() * 10000000).toString().padStart(7, '0'),
+    ADDRESS: () => Math.floor(Math.random() * 9999) + 1 + ' ' + ['Main','Oak','Elm','Pine','Maple','Cedar'][Math.floor(Math.random()*6)] + ' ' + ['Street','Avenue','Road','Drive','Lane'][Math.floor(Math.random()*5)],
+    BANK_ACCT: () => '****' + Math.floor(Math.random() * 100000).toString().padStart(5, '0'),
+    ROUTING: () => Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
+    UK_NI: () => 'AB' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0') + 'C',
+    UK_NHS: () => Math.floor(Math.random() * 10000000000).toString().padStart(10, '0'),
+    IN_AADHAAR: () => Math.floor(Math.random() * 10000).toString().padStart(4,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
+    IN_PAN: () => 'ABCDE' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + 'Z',
+    CN_ID: () => Math.floor(Math.random() * 100000000000000000).toString().padStart(18, '0'),
+    CA_SIN: () => Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
+    JWT: () => 'eyJhbGciOiJIUzI1NiJ9.' + Array(43).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789_-ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 64)]).join('') + '.' + Array(43).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789_-ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 64)]).join(''),
+    AWS_KEY: () => 'AKIA' + Array(16).fill(0).map(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join(''),
+    GITHUB: () => 'ghp_' + Array(36).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 62)]).join(''),
+    SLACK: () => 'xoxb-' + Array(16).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('') + '-' + Array(10).fill(0).map(() => '0123456789'[Math.floor(Math.random() * 10)]).join(''),
+    AU_TFN: () => Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
+    JP_MY: () => Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
+    BR_CPF: () => Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
+    BR_CNPJ: () => Math.floor(Math.random() * 100).toString().padStart(2,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '/' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
+    FR_INSEE: () => Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 1000).toString().padStart(3,'0'),
+};
+
+function fakeFor(label) {
+    const fn = fakers[label];
+    return fn ? fn() : '[FAKE_' + label + ']';
+}
+
+// ── BUILT-IN PII RULES ─────────────────────────────────────────
+const BUILTIN_RULES = [
+    { id:'crypto',  name:'Crypto Wallet',   label:'CRYPTO',   regex:/0x[a-fA-F0-9]{40}/g,                       conf:0.95 },
+    { id:'mac',     name:'MAC Address',     label:'MAC_ADDR', regex:/[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}/g, conf:0.95 },
+    { id:'cc',      name:'Credit Card',     label:'CC_NUM',   regex:/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, conf:0.9, luhn:true },
+    { id:'ssn',     name:'SSN',             label:'SSN_NUM',  regex:/\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,            conf:0.85 },
+    { id:'apikey',  name:'API Key',         label:'APIKEY',   regex:/(?:api[_-]?key|api key)[=:\s]+\S+/gi,         conf:0.85 },
+    { id:'pwd',     name:'Password',        label:'PWD_VAL',  regex:/(?:password|passwd|pass)[=:\s]+\S+/gi,        conf:0.8 },
+    { id:'dob',     name:'Date of Birth',   label:'DOB',      regex:/(?:DOB|date\s*of\s*birth|birth\s*date)[=:\s]*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/gi, conf:0.9 },
+    { id:'passport',name:'Passport',        label:'PASSPORT', regex:/\b[A-Z]\d{8}\b/g,                             conf:0.85 },
+    { id:'phone',   name:'Phone Number',    label:'PHONE_NUM',regex:/\b(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, conf:0.8 },
+    { id:'ip',      name:'IP Address',      label:'IP_ADDR',  regex:/(?<!\b[vV]ersion\s)\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,   conf:0.65 },
+    { id:'routing', name:'Routing Number',  label:'ROUTING',  regex:/\b\d{9}\b/g,                                  conf:0.4 },
+    { id:'email',   name:'Email Address',   label:'EMAIL_ADDR',regex:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, conf:0.95 },
+    { id:'license', name:'Driver License',  label:'LICENSE',  regex:/(?:driver'?s?\s*license|driver'?s?\s*lic|dl|license)[=:\s]*[A-Z0-9]{5,14}/gi, conf:0.7 },
+    { id:'address', name:'Street Address',  label:'ADDRESS',  regex:/\b\d{1,5}\s+[\w\s]{2,}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Circle|Cir|Place|Pl)\.?\b/gi, conf:0.6 },
+    { id:'bank',    name:'Bank Account',    label:'BANK_ACCT',regex:/(?:account|acct|acc)\s*(?:#|number|num|no)?[=:\s]+\d{5,17}/gi, conf:0.7 },
+
+    // ── i18n ─────────────────────────────────────────────────
+    { id:'uk-ni',   name:'UK National Insurance', label:'UK_NI', regex:/\b[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-Z]\b/gi, conf:0.85 },
+    { id:'uk-nhs',  name:'UK NHS Number',          label:'UK_NHS', regex:/\b\d{3}\s?\d{3}\s?\d{4}\b/g, conf:0.7 },
+    { id:'in-aadhaar',name:'India Aadhaar',        label:'IN_AADHAAR', regex:/\b\d{4}\s?\d{4}\s?\d{4}\b/g, conf:0.85 },
+    { id:'in-pan',  name:'India PAN',              label:'IN_PAN', regex:/\b[A-Z]{5}\d{4}[A-Z]\b/gi, conf:0.9 },
+    { id:'cn-id',   name:'China ID (18位)',        label:'CN_ID', regex:/\b\d{6}\d{8}\d{3}[\dXx]\b/g, conf:0.85 },
+    { id:'ca-sin',  name:'Canada SIN',             label:'CA_SIN', regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g, conf:0.7 },
+
+    // ── Token / infrastructure ─────────────────────────────────
+    { id:'jwt',     name:'JWT Token',           label:'JWT',      regex:/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, conf:0.95 },
+    { id:'aws-key', name:'AWS Access Key',      label:'AWS_KEY',  regex:/\bAKIA[0-9A-Z]{16}\b/g,                          conf:0.95 },
+    { id:'github',  name:'GitHub Token',        label:'GITHUB',   regex:/\b(?:ghp_|gho_|ghu_|ghs_|ghr_)[a-zA-Z0-9]{36}\b/g, conf:0.95 },
+    { id:'slack',   name:'Slack Token',         label:'SLACK',    regex:/\bxox[baprs]-[a-zA-Z0-9-]{10,}\b/g,               conf:0.95 },
+
+    // ── More i18n ──────────────────────────────────────────────
+    { id:'au-tfn',  name:'Australia TFN',       label:'AU_TFN',   regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g,                     conf:0.4 },
+    { id:'jp-my',   name:'Japan My Number',     label:'JP_MY',    regex:/\b\d{4}-\d{4}-\d{4}\b/g,                          conf:0.85 },
+    { id:'br-cpf',  name:'Brazil CPF',          label:'BR_CPF',   regex:/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,              conf:0.8 },
+    { id:'br-cnpj', name:'Brazil CNPJ',         label:'BR_CNPJ',  regex:/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,      conf:0.85 },
+    { id:'fr-insee',name:'France INSEE',        label:'FR_INSEE', regex:/\b\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\b/g, conf:0.7 },
+];
+
+let globalCounter = 1;
+let piiMap = {};
+let allMatches = [];
+let maskMode = 'placeholder';
+let stats = loadStats();
+let customRules = loadCustomRules();
+
+// ── CUSTOM RULES ───────────────────────────────────────────────
+function getCustomRules() { return customRules; }
+function saveCustomRules() { localStorage.setItem('ai-fw-custom-rules', JSON.stringify(customRules)); }
+function loadCustomRules() { try { const d = JSON.parse(localStorage.getItem('ai-fw-custom-rules')); return Array.isArray(d) ? d : []; } catch(e) { return []; } }
+
+function addCustomRule() {
+    const name = document.getElementById('ruleName').value.trim();
+    const pattern = document.getElementById('ruleRegex').value.trim();
+    const conf = parseFloat(document.getElementById('ruleConf').value) || 0.5;
+    if (!name || !pattern) { alert('Enter a rule name and regex.'); return; }
+    try { new RegExp(pattern); } catch(e) { alert('Invalid regex: ' + e.message); return; }
+    customRules.push({ id:'custom_'+Date.now(), name, pattern, confidence:Math.min(1, Math.max(0, conf)), enabled:true });
+    saveCustomRules(); renderCustomRules();
+    document.getElementById('ruleName').value = ''; document.getElementById('ruleRegex').value = ''; document.getElementById('ruleConf').value = '0.8';
+}
+function removeCustomRule(id) { customRules = customRules.filter(r=>r.id!==id); saveCustomRules(); renderCustomRules(); }
+function toggleCustomRule(id) { const r = customRules.find(x=>x.id===id); if(r){r.enabled=!r.enabled;saveCustomRules();renderCustomRules();} }
+
+function renderCustomRules() {
+    const list = document.getElementById('ruleList');
+    document.getElementById('rulesCount').textContent = customRules.length + ' custom';
+    if (customRules.length === 0) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">No custom rules yet.</div>'; return; }
+    list.innerHTML = customRules.map(r => '<div class="rule-item"><span class="name">' + escHtml(r.name) + '</span><span class="regex">' + escHtml(r.pattern) + '</span><span class="conf">' + r.confidence.toFixed(2) + '</span><div class="actions"><button class="toggle-btn" onclick="toggleCustomRule(\'' + r.id + '\')">' + (r.enabled?'&#9673;':'&#9675;') + '</button><button class="del-btn" onclick="removeCustomRule(\'' + r.id + '\')">&#10005;</button></div></div>').join('');
+}
+
+// ── GET ALL RULES ──────────────────────────────────────────────
+function getAllRules() {
+    const rules = [...BUILTIN_RULES];
+    for (const c of customRules) {
+        if (!c.enabled) continue;
+        try { rules.push({ id:c.id, name:c.name, label:c.id.toUpperCase(), regex:new RegExp(c.pattern,'gi'), conf:c.confidence }); } catch(e) {}
+    }
+    return rules;
+}
+
+// ── SCRUB ENGINE ───────────────────────────────────────────────
+function scrub(text) {
+    piiMap = {}; allMatches = []; globalCounter = 1;
+    let result = text;
+    const rules = getAllRules();
+
+    for (const rule of rules) {
+        const regex = new RegExp(rule.regex.source, rule.regex.flags);
+        let match;
+        while ((match = regex.exec(result)) !== null) {
+            const raw = match[0];
+            let conf = rule.conf;
+
+            // Luhn check for CC
+            if (rule.luhn) {
+                const clean = raw.replace(/[-\s]/g, '');
+                if (clean.length >= 13 && clean.length <= 19) {
+                    conf = luhnCheck(clean) ? 0.95 : 0.3;
+                }
+            }
+
+            const placeholder = '[' + rule.label + '_' + globalCounter + ']';
+            piiMap[placeholder] = raw;
+
+            let replacement;
+            if (maskMode === 'realistic') {
+                replacement = fakeFor(rule.label);
+            } else {
+                replacement = placeholder;
+            }
+
+            allMatches.push({ type: rule.label, original: raw, placeholder, confidence: conf, name: rule.name, id: rule.id, replacement });
+            result = result.replace(raw, replacement);
+            globalCounter++;
+        }
+    }
+    return result;
+}
+
+function processText() {
+    const input = document.getElementById('inputText').value;
+    if (!input.trim()) { alert('Enter some text to scrub.'); return; }
+
+    const output = scrub(input);
+    document.getElementById('outputText').value = output;
+    showDetectedPii();
+    updateRiskScore();
+
+    stats.requests++;
+    stats.totalPii += allMatches.length;
+    const types = new Set(allMatches.map(m => m.type));
+    stats.typeCount = types.size;
+    for (const m of allMatches) {
+        const t = m.type;
+        if (!stats.byType[t]) stats.byType[t] = 0;
+        stats.byType[t]++;
+    }
+    saveStats(); updateStats();
+    addHistory(input, output, allMatches.length);
+}
+
+function showDetectedPii() {
+    const div = document.getElementById('detectedPii');
+    const tags = document.getElementById('piiTags');
+    const badge = document.getElementById('piiCountBadge');
+    tags.innerHTML = '';
+    if (allMatches.length === 0) { div.style.display = 'none'; return; }
+    div.style.display = 'block';
+    badge.textContent = allMatches.length + ' items';
+    for (const m of allMatches) {
+        const t = document.createElement('span');
+        const cls = (m.type||'').toLowerCase().replace(/[^a-z]/g, '');
+        t.className = 'pii-tag ' + (cls || 'custom');
+        const displayVal = maskMode === 'realistic' && m.replacement ? m.replacement : m.original;
+        t.innerHTML = '<span class="type-badge">' + escHtml(m.type) + '</span> ' + escHtml(displayVal) +
+            ' <span class="confidence">' + m.confidence.toFixed(2) + '</span>';
+        t.title = m.name + ' (confidence: ' + m.confidence + ')';
+        tags.appendChild(t);
+    }
+}
+
+// ── RISK SCORE ─────────────────────────────────────────────────
+const RISK_WEIGHTS = {
+    CC_NUM: 20, SSN_NUM: 20, PWD_VAL: 18, APIKEY: 15, BANK_ACCT: 15,
+    UK_NI: 14, IN_AADHAAR: 14, CN_ID: 14, CA_SIN: 14,
+    PASSPORT: 12, LICENSE: 10, DOB: 10, UK_NHS: 10, IN_PAN: 10,
+    PHONE_NUM: 8, EMAIL_ADDR: 8, ADDRESS: 8, CRYPTO: 8,
+    IP_ADDR: 5, MAC_ADDR: 5, ROUTING: 5,
+    JWT: 18, AWS_KEY: 16, GITHUB: 16, SLACK: 16,
+    AU_TFN: 5, JP_MY: 10, BR_CPF: 8, BR_CNPJ: 10, FR_INSEE: 8,
+};
+
+function computeRiskScore(matches) {
+    if (matches.length === 0) return 0;
+    const types = new Set();
+    let score = 0;
+    for (const m of matches) {
+        types.add(m.type);
+        const w = RISK_WEIGHTS[m.type] || 5;
+        score += w * m.confidence;
+    }
+    // Cap per-type at 25, total at 100
+    score = Math.min(100, Math.round(score));
+    return score;
+}
+
+function updateRiskScore() {
+    const badge = document.getElementById('riskBadge');
+    const scoreEl = document.getElementById('riskScore');
+    const score = computeRiskScore(allMatches);
+    scoreEl.textContent = score;
+    badge.className = 'risk-badge visible';
+    badge.classList.remove('low','medium','high');
+    if (score < 30) badge.classList.add('low');
+    else if (score < 60) badge.classList.add('medium');
+    else badge.classList.add('high');
+}
+
+// ── REALTIME HIGHLIGHTING ─────────────────────────────────────
+let highlightTimer = null;
+function updateHighlight() {
+    const ta = document.getElementById('inputText');
+    const bp = document.getElementById('highlightBackdrop');
+    const text = ta.value;
+    let html = escHtml(text);
+    const rules = getAllRules();
+    for (const rule of rules) {
+        try {
+            const regex = new RegExp(rule.regex.source, rule.regex.flags);
+            html = html.replace(regex, function(m) {
+                let conf = rule.conf;
+                if (rule.luhn) {
+                    const clean = m.replace(/[-\s]/g, '');
+                    if (clean.length >= 13 && clean.length <= 19) {
+                        conf = luhnCheck(clean) ? 0.95 : 0.3;
+                    }
+                }
+                const cls = rule.id + (conf < 0.5 ? ' low-conf' : '');
+                return '<mark class="' + cls + '">' + m + '</mark>';
+            });
+        } catch(e) {}
+    }
+    bp.innerHTML = html + '<br>';
+    bp.scrollTop = ta.scrollTop;
+    bp.scrollLeft = ta.scrollLeft;
+}
+
+document.getElementById('inputText').addEventListener('input', function() {
+    clearTimeout(highlightTimer);
+    highlightTimer = setTimeout(updateHighlight, 50);
+
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => {
+        const text = this.value;
+        const dot = document.getElementById('liveDot');
+        const label = document.getElementById('liveText');
+        if (!text.trim()) { dot.className = 'dot'; label.textContent = 'Type to see live detection'; return; }
+        const count = countPiiLive(text);
+        if (count > 0) { dot.className = 'dot' + (count > 3 ? ' danger' : ' active'); label.textContent = count + ' PII item' + (count > 1 ? 's' : '') + ' detected live'; }
+        else { dot.className = 'dot'; label.textContent = 'No PII detected'; }
+    }, 300);
+});
+
+document.getElementById('inputText').addEventListener('scroll', function() {
+    document.getElementById('highlightBackdrop').scrollTop = this.scrollTop;
+    document.getElementById('highlightBackdrop').scrollLeft = this.scrollLeft;
+});
+
+let liveTimer = null;
+
+function countPiiLive(text) {
+    const rules = getAllRules();
+    let count = 0; const seen = new Set();
+    for (const rule of rules) {
+        const regex = new RegExp(rule.regex.source, rule.regex.flags);
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+            const key = m[0] + rule.id;
+            if (!seen.has(key)) { seen.add(key); count++; }
+        }
+    }
+    return count;
+}
+
+// ── MASK MODE ─────────────────────────────────────────────────
+function setMaskMode(mode) {
+    maskMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────
+function exportJSON() {
+    const data = { scrubbed: document.getElementById('outputText').value, detected: allMatches, timestamp: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pii_report_' + Date.now() + '.json';
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+function exportCSV() {
+    const header = 'Type,Original,Confidence,Name\n';
+    const rows = allMatches.map(m => '"' + m.type + '","' + m.original.replace(/"/g,'""') + '",' + m.confidence + ',"' + m.name + '"').join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pii_report_' + Date.now() + '.csv';
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── COPY / DOWNLOAD ───────────────────────────────────────────
+function copyOutput() {
+    const val = document.getElementById('outputText').value;
+    if (!val) return;
+    navigator.clipboard.writeText(val).catch(() => { document.getElementById('outputText').select(); document.execCommand('copy'); });
+}
+
+function downloadOutput() {
+    const val = document.getElementById('outputText').value;
+    if (!val) return;
+    const blob = new Blob([val], { type: 'text/plain' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'scrubbed_' + Date.now() + '.txt';
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── FILE UPLOAD ───────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if(fileInput.files.length) handleFile(fileInput.files[0]); });
+uploadZone.addEventListener('click', () => fileInput.click());
+
+function handleFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['txt','csv','json'].includes(ext)) { alert('Supported: .txt, .csv, .json'); return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('inputText').value = e.target.result;
+        updateHighlight();
+        uploadZone.textContent = 'Loaded: ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+        uploadZone.style.borderColor = 'var(--success)';
+        setTimeout(() => { uploadZone.style.borderColor = ''; uploadZone.innerHTML = 'Drop a .txt, .csv or .json file here, or click to browse <input type="file" id="fileInput" accept=".txt,.csv,.json">'; }, 3000);
+    };
+    reader.readAsText(file);
+}
+
+// ── HISTORY ───────────────────────────────────────────────────
+function loadHistory() { try { const d = JSON.parse(localStorage.getItem('ai-fw-history')); return Array.isArray(d) ? d : []; } catch(e) { return []; } }
+function saveHistory(h) { localStorage.setItem('ai-fw-history', JSON.stringify(h)); }
+
+function addHistory(input, output, count) {
+    const h = loadHistory();
+    h.unshift({ input: input.substring(0,1000), output: output.substring(0,1000), count, timestamp: Date.now() });
+    if (h.length > 50) h.length = 50;
+    saveHistory(h); renderHistory();
+}
+
+function renderHistory() {
+    const h = loadHistory();
+    document.getElementById('historyCount').textContent = h.length + ' entries';
+    const list = document.getElementById('historyList');
+    if (h.length === 0) { list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">No history yet.</div>'; document.getElementById('historySummary').textContent = ''; return; }
+    document.getElementById('historySummary').textContent = h.reduce((s,e)=>s+e.count,0) + ' total PII masked';
+    list.innerHTML = h.map((e,i) => '<div class="history-item" onclick="restoreHistory('+i+')"><div class="h-time">'+new Date(e.timestamp).toLocaleString()+'</div><div class="h-input">'+escHtml((e.input||'').substring(0,120)+(e.input&&e.input.length>120?'...':''))+'</div><div class="h-count">'+e.count+' PII items</div></div>').join('');
+}
+
+function restoreHistory(index) {
+    const h = loadHistory();
+    const e = h[index]; if (!e) return;
+    document.getElementById('inputText').value = e.input;
+    document.getElementById('outputText').value = e.output;
+    updateHighlight();
+    // re-process for tags
+    scrub(e.input); showDetectedPii(); updateRiskScore();
+    document.getElementById('demo').scrollIntoView({ behavior:'smooth' });
+}
+
+function clearHistory() { if (!confirm('Clear all history?')) return; saveHistory([]); renderHistory(); }
+
+// ── STATS ─────────────────────────────────────────────────────
+function loadStats() { try { const d = JSON.parse(localStorage.getItem('ai-fw-stats')); return d&&typeof d==='object' ? d : defaultStats(); } catch(e) { return defaultStats(); } }
+function defaultStats() { return { requests:0, totalPii:0, typeCount:0, byType:{}, sessions:1 }; }
+function saveStats() { localStorage.setItem('ai-fw-stats', JSON.stringify(stats)); }
+function updateStats() {
+    document.getElementById('statRequests').textContent = stats.requests;
+    document.getElementById('statPii').textContent = stats.totalPii;
+    document.getElementById('statTypes').textContent = Object.keys(stats.byType).length;
+    document.getElementById('statSessions').textContent = stats.sessions || 1;
+}
+
+// ── THEME ─────────────────────────────────────────────────────
+function loadTheme() { return localStorage.getItem('ai-fw-theme') || 'dark'; }
+function saveTheme(t) { localStorage.setItem('ai-fw-theme', t); }
+function applyTheme(t) { document.documentElement.setAttribute('data-theme', t==='light'?'light':''); document.getElementById('themeToggle').innerHTML = t==='light'?'&#9790;':'&#9789;'; }
+document.getElementById('themeToggle').addEventListener('click', () => { const cur = document.documentElement.getAttribute('data-theme')==='light'?'dark':'light'; applyTheme(cur); saveTheme(cur); });
+
+// ── COLLAPSE ──────────────────────────────────────────────────
+['rules','history'].forEach(id => {
+    const h = document.getElementById(id+'Header');
+    const b = document.getElementById(id+'Body');
+    h.addEventListener('click', () => { h.classList.toggle('open'); b.classList.toggle('open'); });
+});
+
+// ── UTILITY ───────────────────────────────────────────────────
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function clearDemo() {
+    document.getElementById('inputText').value = '';
+    document.getElementById('outputText').value = '';
+    document.getElementById('detectedPii').style.display = 'none';
+    document.getElementById('riskBadge').className = 'risk-badge';
+    document.getElementById('highlightBackdrop').innerHTML = '';
+    document.getElementById('liveDot').className = 'dot';
+    document.getElementById('liveText').textContent = 'Type to see live detection';
+}
+function installExtension() { alert('To install:\n\n1. Chrome: chrome://extensions/\n2. Enable Developer mode\n3. Load unpacked\n4. Select extension/ folder'); }
+
+// ── INIT ──────────────────────────────────────────────────────
+applyTheme(loadTheme());
+renderCustomRules();
+renderHistory();
+updateStats();
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+if (!localStorage.getItem('ai-fw-stats')) { stats.sessions = 1; saveStats(); } else {
+    const last = localStorage.getItem('ai-fw-last-visit');
+    const today = new Date().toDateString();
+    if (last !== today) { stats.sessions = (stats.sessions||0)+1; saveStats(); localStorage.setItem('ai-fw-last-visit', today); }
+}
+// Initial highlight
+updateHighlight();
+</script>
+</body>
+</html>

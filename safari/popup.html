@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #fff; }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 16px;
+      text-align: center;
+    }
+    .header h1 { font-size: 16px; margin-bottom: 4px; }
+    .header .subtitle { font-size: 12px; opacity: 0.9; }
+    
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+    }
+    .status-label { font-size: 13px; }
+    .toggle { position: relative; width: 48px; height: 24px; }
+    .toggle.small { width: 40px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #e94560; border-radius: 24px;
+      transition: 0.3s;
+    }
+    .toggle.small .slider { border-radius: 20px; }
+    .toggle .slider:before {
+      content: ''; position: absolute; height: 18px; width: 18px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%;
+      transition: 0.3s;
+    }
+    .toggle.small .slider:before { height: 14px; width: 14px; }
+    .toggle input:checked + .slider { background: #00d9ff; }
+    .toggle input:checked + .slider:before { transform: translateX(24px); }
+    .toggle.small input:checked + .slider:before { transform: translateX(20px); }
+    
+    .settings-bar {
+      padding: 12px 16px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+    }
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 12px;
+    }
+    .setting-item span { color: #ccc; }
+    
+    .stats {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stat-box {
+      background: #16213e; padding: 12px; border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value { font-size: 24px; font-weight: bold; color: #00d9ff; }
+    .stat-label { font-size: 11px; color: #888; margin-top: 4px; }
+    
+    .pii-list {
+      max-height: 200px; overflow-y: auto;
+      padding: 0 16px 16px;
+    }
+    .pii-item {
+      background: #16213e; padding: 8px 12px; border-radius: 6px;
+      margin-bottom: 8px; font-size: 12px;
+    }
+    .pii-type { color: #00d9ff; font-weight: bold; }
+    .pii-count { float: right; color: #e94560; }
+    
+    .apps {
+      padding: 12px 16px;
+      border-top: 1px solid #0f3460;
+    }
+    .apps-title { font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; }
+    .app-badge {
+      display: inline-block; background: #0f3460; padding: 4px 10px;
+      border-radius: 12px; font-size: 11px; margin: 2px;
+    }
+    .app-badge.active { background: #667eea; }
+    
+    .footer {
+      padding: 12px 16px; text-align: center;
+      border-top: 1px solid #0f3460;
+    }
+    .footer a { color: #00d9ff; text-decoration: none; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🛡️ AI Personal Firewall</h1>
+    <div class="subtitle">Privacy Protection for AI Chat</div>
+  </div>
+  
+  <div class="status-bar">
+    <span class="status-label">Protection</span>
+    <label class="toggle">
+      <input type="checkbox" id="enableToggle" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  
+  <div class="settings-bar">
+    <label class="setting-item">
+      <span>🔔 Sound Alerts</span>
+      <label class="toggle small">
+        <input type="checkbox" id="soundToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </label>
+    <label class="setting-item">
+      <span>📝 Show Masked Text</span>
+      <label class="toggle small">
+        <input type="checkbox" id="maskedTextToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </label>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-value" id="requestsCount">0</div>
+      <div class="stat-label">Requests Scrubbed</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="piiCount">0</div>
+      <div class="stat-label">PII Items Masked</div>
+    </div>
+  </div>
+  
+  <div class="pii-list" id="piiList">
+    <div class="pii-item">
+      <span class="pii-type">Monitoring...</span>
+    </div>
+  </div>
+  
+  <div class="apps">
+    <div class="apps-title">Supported Apps</div>
+    <span class="app-badge active">ChatGPT</span>
+    <span class="app-badge active">Copilot</span>
+    <span class="app-badge active">Gemini</span>
+    <span class="app-badge active">Claude</span>
+    <span class="app-badge active">Perplexity</span>
+    <span class="app-badge active">Poe</span>
+    <span class="app-badge active">Groq</span>
+    <span class="app-badge active">Mistral</span>
+    <span class="app-badge active">Cohere</span>
+    <span class="app-badge active">Meta AI</span>
+    <span class="app-badge active">DeepSeek</span>
+    <span class="app-badge active">You.com</span>
+    <span class="app-badge active">Kimi</span>
+    <span class="app-badge active">Qwen</span>
+    <span class="app-badge active">Jina</span>
+    <span class="app-badge active">Phind</span>
+  </div>
+  
+  <div class="footer" style="display:flex;justify-content:center;gap:16px;padding:12px 16px;border-top:1px solid #0f3460">
+    <a href="#" id="clearStats" style="color:#00d9ff;text-decoration:none;font-size:11px">Clear Stats</a>
+    <span style="color:#333">|</span>
+    <a href="https://github.com/sponsors/louiesesther-prog" target="_blank" style="color:#f59e0b;text-decoration:none;font-size:11px">&#9829; Sponsor</a>
+    <span style="color:#333">|</span>
+    <a href="https://github.com/anomalyco/ai-firewall" target="_blank" style="color:#888;text-decoration:none;font-size:11px">GitHub</a>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

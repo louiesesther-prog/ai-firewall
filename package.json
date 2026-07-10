@@ -1,0 +1,38 @@
+{
+  "name": "ai-firewall",
+  "version": "2.0.0",
+  "description": "Detect and mask 30+ PII types in text. 100% local. CLI, REST API, browser extension, VS Code extension, PWA, and Docker.",
+  "keywords": ["pii", "privacy", "security", "masking", "detection", "firewall", "ai-chat", "scan", "compliance", "gdpr", "hipaa"],
+  "license": "MIT",
+  "homepage": "https://github.com/anomalyco/ai-firewall",
+  "repository": { "type": "git", "url": "git+https://github.com/anomalyco/ai-firewall.git" },
+  "bugs": { "url": "https://github.com/anomalyco/ai-firewall/issues" },
+  "engines": { "node": ">=16.0.0" },
+  "bin": { "ai-firewall": "./cli.js", "ai-fw": "./cli.js" },
+  "main": "./cli.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./cli.js",
+      "require": "./cli.js",
+      "types": "./index.d.ts"
+    }
+  },
+  "files": ["cli.js", "server.js", "index.html", "extension/", "sw.js", "manifest.json", ".vscode-ext/", "test-report.mjs", "index.d.ts", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "node test-report.mjs",
+    "scan": "node cli.js scan",
+    "serve": "node cli.js serve",
+    "start": "npx http-server . -o -p 8080",
+    "precommit": "node cli.js scan --summary"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {},
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

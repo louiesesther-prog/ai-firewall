@@ -1,0 +1,83 @@
+{
+  "manifest_version": 3,
+  "name": "AI Personal Firewall",
+  "version": "2.0.0",
+  "description": "Protect your privacy by scrubbing 30+ PII types from AI prompts. Luhn-validated CC, confidence scoring, realistic fakers.",
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "96": "icons/icon96.svg",
+    "128": "icons/icon128.svg"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ai-firewall@opencode",
+      "strict_min_version": "109.0"
+    }
+  },
+  "homepage_url": "https://github.com/anomalyco/ai-firewall",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://chat.openai.com/*",
+    "*://chatgpt.com/*",
+    "*://copilot.microsoft.com/*",
+    "*://gemini.google.com/*",
+    "*://claude.ai/*",
+    "*://perplexity.ai/*",
+    "*://poe.com/*",
+    "*://groq.com/*",
+    "*://mistral.ai/*",
+    "*://cohere.ai/*",
+    "*://meta.ai/*",
+    "*://deepseek.com/*",
+    "*://you.com/*",
+    "*://kimi.ai/*",
+    "*://qwen.ai/*",
+    "*://jina.ai/*",
+    "*://phind.com/*",
+    "*://chat.google.com/*",
+    "*://ai.google.dev/*"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://chat.openai.com/*",
+        "*://chatgpt.com/*",
+        "*://copilot.microsoft.com/*",
+        "*://gemini.google.com/*",
+        "*://claude.ai/*",
+        "*://perplexity.ai/*",
+        "*://poe.com/*",
+        "*://groq.com/*",
+        "*://mistral.ai/*",
+        "*://cohere.ai/*",
+        "*://meta.ai/*",
+        "*://deepseek.com/*",
+        "*://you.com/*",
+        "*://kimi.ai/*",
+        "*://qwen.ai/*",
+        "*://jina.ai/*",
+        "*://phind.com/*",
+        "*://chat.google.com/*",
+        "*://ai.google.dev/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "32": "icons/icon16.svg"
+    }
+  }
+}

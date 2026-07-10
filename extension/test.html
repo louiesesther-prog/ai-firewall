@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Firewall Test</title>
+  <style>
+    body { font-family: system-ui; padding: 40px; }
+    textarea { width: 100%; height: 120px; padding: 12px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; margin: 10px 0; }
+    #status { position: fixed; top: 10px; left: 10px; padding: 10px 20px; background: #6366f1; color: white; border-radius: 8px; font-weight: bold; }
+    #result { margin-top: 20px; padding: 20px; background: #f0f0f0; border-radius: 8px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="status">🛡️ AI Firewall Test</div>
+  <h2>Test PII Detection</h2>
+  <p>Type an email (test@example.com), phone (555-123-4567), or SSN (123-45-6789) below, then press Ctrl+Enter to mask:</p>
+  
+  <textarea id="prompt" placeholder="Type your message here with PII..."></textarea>
+  
+  <h3>Output (masked):</h3>
+  <div id="result">(masked text will appear here)</div>
+  
+  <script>
+    // Paste the extension's content.js logic here for testing
+    const patterns = [
+      { name: 'EMAIL', regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi },
+      { name: 'PHONE', regex: /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g },
+      { name: 'SSN', regex: /\b\d{3}[-]\d{2}[-]\d{4}\b/g },
+      { name: 'CC', regex: /\b\d{4}[-.\s]?\d{4}[-.\s]?\d{4}[-.\s]?\d{4}\b/g },
+    ];
+    
+    const ta = document.getElementById('prompt');
+    const result = document.getElementById('result');
+    const status = document.getElementById('status');
+    
+    function detect(text) {
+      const found = [];
+      patterns.forEach(p => {
+        if (p.regex.test(text)) found.push(p.name);
+        p.regex.lastIndex = 0;
+      });
+      return found;
+    }
+    
+    function mask(text) {
+      let result = text;
+      const map = {};
+      let n = 1;
+      
+      patterns.forEach(p => {
+        result = result.replace(p.regex, m => {
+          const key = '[' + p.name + '_' + n + ']';
+          map[key] = m;
+          n++;
+          return key;
+        });
+      });
+      
+      return { text: result, map };
+    }
+    
+    ta.addEventListener('input', function() {
+      const found = detect(this.value);
+      status.textContent = found.length ? '⚠️ PII: ' + found.join(', ') : '🛡️ AI Firewall';
+      status.style.background = found.length ? '#f59e0b' : '#6366f1';
+    });
+    
+    ta.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        const m = mask(this.value);
+        result.textContent = JSON.stringify(m.map, null, 2);
+        ta.value = m.text;
+        status.textContent = '✅ Masked ' + Object.keys(m.map).length + ' PII';
+        status.style.background = '#22c55e';
+      }
+    });
+    
+    status.textContent = '🛡️ Ready - type PII above';
+  </script>
+</body>
+</html>

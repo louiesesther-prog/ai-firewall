@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  cli:
+    build: .
+    image: ai-firewall:latest
+    entrypoint: ["node", "/app/cli.js"]
+    command: ["--help"]
+    volumes:
+      - .:/data
+    working_dir: /data
+
+  scan:
+    build: .
+    image: ai-firewall:latest
+    entrypoint: ["node", "/app/cli.js"]
+    command: ["scan", ".", "--summary"]
+    volumes:
+      - .:/data
+    working_dir: /data
+
+  api:
+    build: .
+    image: ai-firewall:latest
+    entrypoint: ["node", "/app/server.js"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/data
+    working_dir: /data
+
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/usr/share/nginx/html:ro

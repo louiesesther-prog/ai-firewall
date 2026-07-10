@@ -1,0 +1,14 @@
+# AI Personal Firewall - Advanced Edition
+# Tech Stack: Microsoft Presidio + Faker + Local Proxy
+
+# Requirements
+pip install presidio-analyzer presidio-anonymizer faker requests flask
+
+# Or install all at once:
+pip install presidio-analyzer presidio-anonymizer faker requests flask presidio presidio-evaluator
+
+# For Spacy models (required for Presidio):
+python -m spacy download en_core_web_lg
+
+# Optional - for better detection:
+python -m spacy download en_core_web_trf
