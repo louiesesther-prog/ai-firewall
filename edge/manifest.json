@@ -3,7 +3,7 @@
   "name": "AI Personal Firewall",
   "version": "2.0.0",
   "description": "Protect your privacy by scrubbing 30+ PII types from AI prompts. Luhn-validated CC, confidence scoring, realistic fakers.",
-  "homepage_url": "https://github.com/anomalyco/ai-firewall",
+  "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
   "permissions": ["storage"],
   "host_permissions": [
     "https://chat.openai.com/*",

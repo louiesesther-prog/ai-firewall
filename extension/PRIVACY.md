@@ -42,4 +42,4 @@ If this policy is updated, the version number and "Last updated" date at the top
 ## Contact
 
 For questions or concerns, open an issue at:
-https://github.com/anomalyco/ai-firewall/issues
+https://github.com/louiesesther-prog/ai-firewall/issues

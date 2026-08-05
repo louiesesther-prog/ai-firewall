@@ -1,28 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1280, height=800">
+<meta name="viewport" content="width=1280">
 <title>AI Personal Firewall — Store Screenshots</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0f0f1a; display: flex; flex-direction: column; align-items: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; padding: 40px 20px; }
-.page { width: 1260px; min-height: 780px; background: #1a1a2e; border-radius: 16px; margin-bottom: 40px; position: relative; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
-.label { color: #666; font-size: 14px; margin-bottom: 8px; text-align: center; }
+body { background: #0f0f1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; width: 1280px; }
+.page { width: 1280px; height: 800px; position: relative; overflow: hidden; }
+.pg-label { position: absolute; bottom: 8px; right: 12px; color: #444; font-size: 11px; z-index: 10; }
 
 /* ─── Screenshot 1: Popup Dashboard ─── */
-.dash {
-  display: flex; align-items: center; justify-content: center;
-  gap: 60px; padding: 40px; height: 100%; min-height: 780px;
-}
-.popup {
-  width: 340px; background: #1a1a2e; border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6); overflow: hidden;
-}
-.popup-header {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  padding: 20px; text-align: center; color: white;
-}
+.dash { display: flex; align-items: center; justify-content: center; gap: 60px; width: 1280px; height: 800px; background: #1a1a2e; }
+.popup { width: 340px; background: #1a1a2e; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); overflow: hidden; }
+.popup-header { background: linear-gradient(135deg,#667eea,#764ba2); padding: 20px; text-align: center; color: white; }
 .popup-header h1 { font-size: 18px; }
 .popup-header .sub { font-size: 12px; opacity: .85; margin-top: 4px; }
 .popup-body { padding: 16px; }
@@ -37,9 +27,8 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
 .item-count { color: #e94560; }
 .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #16213e; border-bottom: 1px solid #0f3460; }
 .toggle-lbl { font-size: 13px; color: white; }
-.toggle { width: 44px; height: 22px; background: #e94560; border-radius: 22px; position: relative; cursor: pointer; }
-.toggle.on { background: #00d9ff; }
-.toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 2px; left: 24px; transition: .2s; }
+.toggle { width: 44px; height: 22px; background: #00d9ff; border-radius: 22px; position: relative; }
+.toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 2px; left: 24px; }
 .app-badges { padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 6px; }
 .badge { background: #0f3460; padding: 4px 12px; border-radius: 12px; font-size: 11px; color: #aaa; }
 .badge.active { background: #667eea; color: white; }
@@ -47,69 +36,58 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
 .side-panel h2 { color: white; font-size: 22px; margin-bottom: 8px; }
 .side-panel p { color: #888; line-height: 1.6; font-size: 14px; }
 
-/* ─── Screenshot 2: PII Detection in ChatGPT ─── */
-.chat-mock {
-  display: flex; flex-direction: column; height: 100%; min-height: 780px;
-  background: #212121;
-}
+/* ─── Screenshot 2: PII Detection ─── */
+.chat-mock { display: flex; flex-direction: column; width: 1280px; height: 800px; background: #212121; }
 .chat-topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #171717; border-bottom: 1px solid #333; }
 .chat-topbar .dot { width: 12px; height: 12px; border-radius: 50%; }
 .chat-topbar .green { background: #4ade80; }
 .chat-topbar .yellow { background: #facc15; }
 .chat-topbar .red { background: #f87171; }
 .chat-topbar .title { color: #ccc; font-size: 13px; margin-left: 8px; }
-.chat-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-.msg { max-width: 75%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; position: relative; }
+.chat-area { flex: 1; padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; justify-content: flex-end; }
+.msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; position: relative; }
 .msg.user { background: #2f2f3a; color: #ddd; align-self: flex-end; }
 .msg.ai { background: #1e1e2a; color: #ccc; align-self: flex-start; border: 1px solid #333; }
 .msg .pii-tag { display: inline-block; background: #e94560; color: white; padding: 1px 8px; border-radius: 4px; font-size: 12px; margin: 0 2px; }
 .msg .pii-tag.safe { background: #22c55e; }
-.msg .pii-tag.warn { background: #f59e0b; }
-.msg .meta { font-size: 11px; color: #666; margin-top: 6px; display: flex; gap: 8px; }
-.alert { position: absolute; top: -8px; right: -8px; background: #e94560; color: white; font-size: 10px; padding: 2px 8px; border-radius: 8px; }
+.msg .meta { font-size: 11px; color: #666; margin-top: 4px; display: flex; gap: 8px; }
 .chat-input-row { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #171717; border-top: 1px solid #333; }
-.chat-input { flex: 1; background: #2f2f3a; border: none; border-radius: 24px; padding: 12px 20px; color: white; font-size: 14px; outline: none; }
+.chat-input { flex: 1; background: #2f2f3a; border: none; border-radius: 24px; padding: 12px 20px; color: white; font-size: 14px; }
 .chat-input::placeholder { color: #555; }
-.send-btn { width: 40px; height: 40px; border-radius: 50%; background: #667eea; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.send-btn { width: 40px; height: 40px; border-radius: 50%; background: #667eea; border: none; display: flex; align-items: center; justify-content: center; }
 .send-btn svg { width: 18px; height: 18px; fill: white; }
-/* Shield indicator */
-.shield { position: absolute; top: 12px; right: 12px; background: #1a1a2e; border-radius: 8px; padding: 8px 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.shield { position: absolute; top: 12px; right: 12px; background: #1a1a2e; border-radius: 8px; padding: 8px 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 5; }
 .shield svg { width: 20px; height: 20px; }
 .shield .txt { font-size: 12px; color: #4ade80; }
 .shield .count { font-size: 11px; color: #888; }
 
-/* ─── Screenshot 3: Live Stats Dashboard ─── */
-.stats-dash {
-  display: flex; flex-direction: column; height: 100%; min-height: 780px;
-  background: #0f0f1a; padding: 30px 40px;
-}
+/* ─── Screenshot 3: Stats Dashboard ─── */
+.stats-dash { display: flex; flex-direction: column; width: 1280px; height: 800px; background: #0f0f1a; padding: 30px 40px; }
 .stats-dash h1 { color: white; font-size: 28px; margin-bottom: 4px; }
-.stats-dash .sub { color: #666; font-size: 14px; margin-bottom: 24px; }
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stats-dash .sub { color: #666; font-size: 14px; margin-bottom: 20px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 20px; }
 .sg-box { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; }
 .sg-box .num { font-size: 32px; font-weight: 700; color: #00d9ff; }
 .sg-box .lbl { font-size: 13px; color: #666; margin-top: 4px; }
 .sg-box .trend { font-size: 12px; color: #4ade80; margin-top: 4px; }
-.chart-section { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; margin-bottom: 24px; }
-.chart-section h3 { color: white; font-size: 16px; margin-bottom: 16px; }
-.bar-chart { display: flex; gap: 8px; align-items: flex-end; height: 120px; }
+.chart-section { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; margin-bottom: 20px; }
+.chart-section h3 { color: white; font-size: 16px; margin-bottom: 12px; }
+.bar-chart { display: flex; gap: 8px; align-items: flex-end; height: 100px; }
 .bar { flex: 1; border-radius: 4px 4px 0 0; min-height: 8px; position: relative; }
 .bar .bl { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #666; white-space: nowrap; }
-.pii-breakdown { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; }
+.pii-breakdown { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; flex: 1; }
 .pii-breakdown h3 { color: white; font-size: 16px; margin-bottom: 12px; }
-.pii-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #1f1f30; }
+.pii-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #1f1f30; }
 .pii-row:last-child { border: 0; }
-.pii-row .type { width: 100px; font-size: 13px; color: #ccc; }
+.pii-row .type { width: 110px; font-size: 13px; color: #ccc; }
 .pii-row .bar2 { flex: 1; height: 8px; background: #2a2a3e; border-radius: 8px; overflow: hidden; }
 .pii-row .bar2 .fill { height: 100%; border-radius: 8px; }
 .pii-row .val { font-size: 13px; color: #888; width: 40px; text-align: right; }
 </style>
-</head>
-<body>
+</head><body>
 
-<div class="label">Screenshot 1 — Extension Popup Dashboard</div>
-<div class="page">
-<div class="dash">
+<!-- Page 1 -->
+<div class="page dash">
   <div class="popup">
     <div class="popup-header">
       <h1>AI Personal Firewall</h1>
@@ -117,7 +95,7 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
     </div>
     <div class="toggle-row">
       <span class="toggle-lbl">Protection</span>
-      <div class="toggle on"></div>
+      <div class="toggle"></div>
     </div>
     <div class="popup-body">
       <div class="popup-stats">
@@ -131,8 +109,6 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
         <div class="popup-item"><span class="item-type">Credit Card</span><span class="item-count">156</span></div>
         <div class="popup-item"><span class="item-type">IP Address</span><span class="item-count">523</span></div>
         <div class="popup-item"><span class="item-type">Crypto Wallet</span><span class="item-count">78</span></div>
-        <div class="popup-item"><span class="item-type">API Key</span><span class="item-count">45</span></div>
-        <div class="popup-item"><span class="item-type">Password</span><span class="item-count">92</span></div>
       </div>
     </div>
     <div class="app-badges">
@@ -152,18 +128,18 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
   </div>
   <div class="side-panel">
     <h2>Real-time PII Protection Dashboard</h2>
-    <p>Monitor all PII detection activity directly from your browser toolbar. View scrubbing stats, detected PII types, and toggle protection on/off — all without leaving your current page.</p>
+    <p>Monitor all PII detection activity directly from your browser toolbar. View scrubbing stats, detected PII types, and toggle protection on/off.</p>
     <p style="margin-top:16px;color:#666;font-size:13px;">&#8226; 30+ PII types detected<br>
     &#8226; Luhn-validated credit card detection<br>
     &#8226; Confidence scoring (0.0 – 1.0)<br>
     &#8226; Realistic fake-data masking<br>
     &#8226; 100% offline processing</p>
   </div>
-</div>
+  <div class="pg-label">Screenshot 1 — Popup Dashboard</div>
 </div>
 
-<div class="label">Screenshot 2 — Real-time PII Detection in ChatGPT</div>
-<div class="page" style="position:relative">
+<!-- Page 2 -->
+<div class="page" style="background:#212121">
   <div class="shield">
     <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <span class="txt">Protected</span>
@@ -177,17 +153,12 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
     <div class="chat-area">
       <div class="msg ai">Hi! How can I help you today?</div>
       <div class="msg user">
-        I need to update my account details. My email is <span class="pii-tag safe">[EMAIL_ADDR_1]</span> and my phone is <span class="pii-tag safe">[PHONE_NUM_1]</span>.
+        I need to update my account. My email is <span class="pii-tag safe">[EMAIL_ADDR_1]</span> and phone is <span class="pii-tag safe">[PHONE_NUM_1]</span>.
         <div class="meta"><span>PII auto-detected</span><span style="color:#4ade80">Confidence: 0.95 / 0.80</span></div>
       </div>
-      <div class="msg ai">I can help with that! I see your email on file is user****@example.com. What would you like to update?</div>
+      <div class="msg ai">I can help! I see your email on file is user****@example.com.</div>
       <div class="msg user">
-        Also, my SSN is <span class="pii-tag safe">[SSN_NUM_1]</span> — I need to verify it.
-        <div class="meta"><span>PII auto-detected</span><span style="color:#f59e0b">Confidence: 0.85</span></div>
-      </div>
-      <div class="msg ai">I've verified your identity. Your SSN on file ends in -6789. What changes are needed?</div>
-      <div class="msg user">
-        My card number is <span class="pii-tag safe">[CC_NUM_1]</span> for the billing update.
+        My SSN is <span class="pii-tag safe">[SSN_NUM_1]</span> and card is <span class="pii-tag safe">[CC_NUM_1]</span>.
         <div class="meta"><span>Luhn validated</span><span style="color:#4ade80">Confidence: 0.95</span></div>
       </div>
     </div>
@@ -196,11 +167,11 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
       <button class="send-btn"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
     </div>
   </div>
+  <div class="pg-label">Screenshot 2 — PII Detection in ChatGPT</div>
 </div>
 
-<div class="label">Screenshot 3 — Live Statistics Dashboard</div>
-<div class="page">
-<div class="stats-dash">
+<!-- Page 3 -->
+<div class="page stats-dash">
   <h1>Privacy Dashboard</h1>
   <div class="sub">Real-time PII detection and masking statistics</div>
   <div class="stats-grid">
@@ -223,7 +194,6 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
       <div class="bar" style="height:35%;background:#14b8a6"><span class="bl">License</span></div>
       <div class="bar" style="height:18%;background:#ec4899"><span class="bl">JWT</span></div>
       <div class="bar" style="height:22%;background:#6366f1"><span class="bl">i18n</span></div>
-      <div class="bar" style="height:10%;background:#84cc16"><span class="bl">Other</span></div>
     </div>
   </div>
   <div class="pii-breakdown">
@@ -237,17 +207,7 @@ body { background: #0f0f1a; display: flex; flex-direction: column; align-items: 
     <div class="pii-row"><span class="type">API Key / Token</span><div class="bar2"><div class="fill" style="width:15%;background:#f97316"></div></div><span class="val">1,806</span></div>
     <div class="pii-row"><span class="type">Passport / License</span><div class="bar2"><div class="fill" style="width:25%;background:#a855f7"></div></div><span class="val">3,010</span></div>
   </div>
-</div>
-</div>
-
-<div style="color:#444;font-size:13px;text-align:center;padding:20px;max-width:800px;line-height:1.6;">
-  <strong>How to capture screenshots:</strong><br>
-  1. Open this HTML file in Chrome/Edge/Firefox<br>
-  2. Press <kbd>Ctrl+Shift+I</kbd> to open DevTools → click the <strong>Device Toolbar</strong> (phone icon)<br>
-  3. Set dimensions to <strong>1280×800</strong> and ensure scaling is 100%<br>
-  4. Take a screenshot of each page (or use the browser's built-in screenshot tool)<br>
-  5. Upload to each store's developer console
+  <div class="pg-label">Screenshot 3 — Live Statistics Dashboard</div>
 </div>
 
-</body>
-</html>
+</body></html>

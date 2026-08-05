@@ -80,12 +80,30 @@ footer { border-top: 1px solid var(--border); padding: 30px 0; text-align: cente
 footer a { color: var(--primary-light); text-decoration: none; }
 
 /* ── Responsive ── */
+@media (max-width:900px) {
+  .steps { grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); }
+}
 @media (max-width:768px) {
+  .nav-inner { padding: 12px 0; }
+  .nav-links { gap: 14px; }
   .nav-links a:not(.nav-cta) { display: none; }
-  .hero { padding: 50px 0 40px; }
-  section { padding: 50px 0; }
+  .hero { padding: 48px 0 36px; }
+  .hero-stats { gap: 24px; margin-top: 30px; }
+  section { padding: 48px 0; }
   .features-grid { grid-template-columns: 1fr; }
-  .cta { padding: 40px 24px; }
+  .steps { grid-template-columns: 1fr; gap: 16px; }
+  .pii-grid { grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); }
+  .install-grid { grid-template-columns: 1fr; }
+  .cta { padding: 36px 20px; }
+  .cta h2 { font-size: 26px; }
+}
+@media (max-width:480px) {
+  .container { padding: 0 16px; }
+  .hero h1 { font-size: 30px; }
+  .hero-btns .btn { width: 100%; justify-content: center; }
+  .stat-num { font-size: 22px; }
+  .platform { padding: 10px 16px; font-size: 13px; }
+  .install-card h3 { font-size: 17px; }
 }
 </style>
 </head>
@@ -101,7 +119,7 @@ footer a { color: var(--primary-light); text-decoration: none; }
       <a href="#features">Features</a>
       <a href="#how">How It Works</a>
       <a href="#pii">PII Types</a>
-      <a href="https://github.com/anomalyco/ai-firewall" target="_blank">GitHub</a>
+      <a href="https://github.com/louiesesther-prog/ai-firewall" target="_blank">GitHub</a>
       <a href="index.html" class="nav-cta">Try Demo</a>
     </div>
   </div>
@@ -115,7 +133,7 @@ footer a { color: var(--primary-light); text-decoration: none; }
     <div class="hero-btns">
       <a href="index.html" class="btn btn-primary">&#9654; Try Live Demo</a>
       <a href="#install" class="btn btn-secondary">&#11015; Install Extension</a>
-      <a href="https://github.com/anomalyco/ai-firewall" target="_blank" class="btn btn-outline">GitHub</a>
+      <a href="https://github.com/louiesesther-prog/ai-firewall" target="_blank" class="btn btn-outline">GitHub</a>
     </div>
     <div class="hero-stats">
       <div class="stat-item"><div class="stat-num">30+</div><div class="stat-lbl">PII Types Detected</div></div>
@@ -262,31 +280,48 @@ footer a { color: var(--primary-light); text-decoration: none; }
 <section id="install">
   <div class="container">
     <h2 class="section-title">Get Started</h2>
-    <p class="section-sub">Available on all major browsers, plus CLI and REST API.</p>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+    <p class="section-sub">Available on all major browsers, plus CLI and REST API. Everything is free and open source.</p>
+    <div class="install-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
+      <div class="install-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
         <div style="font-size:40px;margin-bottom:12px">&#127758;</div>
         <h3 style="margin-bottom:6px">Chrome / Edge</h3>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Load unpacked from <code>extension/</code> folder</p>
-        <p style="font-size:12px;color:var(--text3)">Chrome Web Store &amp; Edge Add-ons coming soon</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Load unpacked from source &mdash; works today:</p>
+        <ol style="text-align:left;font-size:13px;color:var(--text2);margin:0 auto 16px;padding-left:20px;max-width:220px">
+          <li>Download the repo (ZIP)</li>
+          <li>Open <code>chrome://extensions</code></li>
+          <li>Enable <strong>Developer mode</strong></li>
+          <li>Click <strong>Load unpacked</strong> &rarr; select <code>extension/</code></li>
+        </ol>
+        <a href="https://github.com/louiesesther-prog/ai-firewall/archive/refs/heads/main.zip" target="_blank" style="display:inline-block;font-size:13px;color:var(--primary-light);text-decoration:none;font-weight:600">&#11015; Download source &rarr;</a>
+        <p style="font-size:12px;color:var(--text3);margin-top:10px">Chrome Web Store &amp; Edge Add-ons listing pending</p>
       </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+      <div class="install-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
         <div style="font-size:40px;margin-bottom:12px">&#128025;</div>
         <h3 style="margin-bottom:6px">Firefox</h3>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Load temporary from <code>firefox/</code> folder</p>
-        <p style="font-size:12px;color:var(--text3)">AMO listing coming soon</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Load a temporary add-on from source:</p>
+        <ol style="text-align:left;font-size:13px;color:var(--text2);margin:0 auto 16px;padding-left:20px;max-width:220px">
+          <li>Download the repo (ZIP)</li>
+          <li>Open <code>about:debugging</code></li>
+          <li>Click <strong>This Firefox</strong> &rarr; <strong>Load Temporary Add-on</strong></li>
+          <li>Select <code>firefox/manifest.json</code></li>
+        </ol>
+        <a href="https://github.com/louiesesther-prog/ai-firewall/archive/refs/heads/main.zip" target="_blank" style="display:inline-block;font-size:13px;color:var(--primary-light);text-decoration:none;font-weight:600">&#11015; Download source &rarr;</a>
+        <p style="font-size:12px;color:var(--text3);margin-top:10px">Firefox AMO listing pending</p>
       </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+      <div class="install-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
         <div style="font-size:40px;margin-bottom:12px">&#128188;</div>
         <h3 style="margin-bottom:6px">CLI Tool</h3>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px"><code>npx ai-firewall scan ./docs</code></p>
-        <a href="https://github.com/anomalyco/ai-firewall" target="_blank" style="font-size:13px;color:var(--primary-light);text-decoration:none">Install via npm &rarr;</a>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Scan files, folders, and streams from the terminal:</p>
+        <pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--accent);text-align:left;margin:0 auto 16px;max-width:220px;overflow-x:auto;white-space:pre-wrap">npm i -g ai-firewall
+ai-firewall scan ./docs</pre>
+        <a href="https://github.com/louiesesther-prog/ai-firewall" target="_blank" style="font-size:13px;color:var(--primary-light);text-decoration:none">npm docs &rarr;</a>
       </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
+      <div class="install-card" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;text-align:center">
         <div style="font-size:40px;margin-bottom:12px">&#127760;</div>
-        <h3 style="margin-bottom:6px">REST API</h3>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Local API server with 9 endpoints</p>
-        <a href="index.html" style="font-size:13px;color:var(--primary-light);text-decoration:none">Try the web demo &rarr;</a>
+        <h3 style="margin-bottom:6px">REST API / Demo</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Local API server with 9 endpoints, or test the engine in your browser:</p>
+        <a href="index.html" class="btn btn-secondary" style="display:inline-block;font-size:13px;padding:8px 20px;margin-bottom:10px">&#9654; Launch Interactive Demo</a>
+        <p style="font-size:12px;color:var(--text3)">POST /scrub &middot; POST /scan &middot; GET /health</p>
       </div>
     </div>
   </div>
@@ -302,8 +337,8 @@ footer a { color: var(--primary-light); text-decoration: none; }
 
 <footer>
   <div class="container">
-    <p><a href="https://github.com/anomalyco/ai-firewall" target="_blank">AI Personal Firewall</a> &mdash; MIT Licensed &mdash; Built with &#9829; for privacy</p>
-    <p style="margin-top:8px"><a href="index.html">Demo</a> &middot; <a href="https://github.com/anomalyco/ai-firewall">GitHub</a> &middot; <a href="extension/PRIVACY.md">Privacy Policy</a></p>
+    <p><a href="https://github.com/louiesesther-prog/ai-firewall" target="_blank">AI Personal Firewall</a> &mdash; MIT Licensed &mdash; Built with &#9829; for privacy</p>
+    <p style="margin-top:8px"><a href="index.html">Demo</a> &middot; <a href="https://github.com/louiesesther-prog/ai-firewall">GitHub</a> &middot; <a href="extension/PRIVACY.md">Privacy Policy</a></p>
   </div>
 </footer>
 
