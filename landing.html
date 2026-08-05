@@ -105,6 +105,31 @@ footer a { color: var(--primary-light); text-decoration: none; }
   .platform { padding: 10px 16px; font-size: 13px; }
   .install-card h3 { font-size: 17px; }
 }
+
+/* ── Pricing ── */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 24px; align-items: stretch; max-width: 900px; margin: 0 auto; }
+.price-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px 28px; display: flex; flex-direction: column; position: relative; }
+.price-card.featured { background: var(--bg2); border: 2px solid var(--primary); transform: translateY(-6px); }
+.price-card h3 { font-size: 18px; margin-bottom: 4px; }
+.price-card .tag { display: inline-block; background: var(--gradient); color: white; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); }
+.price-num { font-size: 40px; font-weight: 800; color: white; margin: 10px 0 4px; }
+.price-num .cur { font-size: 22px; color: var(--text2); vertical-align: super; }
+.price-num .per { font-size: 14px; color: var(--text3); font-weight: 400; }
+.price-desc { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+.price-feats { list-style: none; flex: 1; margin: 0 0 24px; }
+.price-feats li { font-size: 14px; color: var(--text2); padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.price-feats li::before { content: '&#10003;'; color: var(--accent); font-weight: 700; }
+.price-feats li.no::before { content: '&#10005;'; color: var(--text3); }
+.price-feats li:last-child { border-bottom: 0; }
+.price-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; }
+.price-cta.primary { background: var(--gradient); color: white; }
+.price-cta.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.price-cta:hover { transform: translateY(-2px); }
+.pricing-note { text-align: center; color: var(--text3); font-size: 13px; margin-top: 24px; }
+@media (max-width:768px) {
+  .pricing-grid { grid-template-columns: 1fr; }
+  .price-card.featured { transform: none; }
+}
 </style>
 </head>
 <body>
@@ -119,6 +144,7 @@ footer a { color: var(--primary-light); text-decoration: none; }
       <a href="#features">Features</a>
       <a href="#how">How It Works</a>
       <a href="#pii">PII Types</a>
+      <a href="#pricing">Pricing</a>
       <a href="https://github.com/louiesesther-prog/ai-firewall" target="_blank">GitHub</a>
       <a href="index.html" class="nav-cta">Try Demo</a>
     </div>
@@ -324,6 +350,59 @@ ai-firewall scan ./docs</pre>
         <p style="font-size:12px;color:var(--text3)">POST /scrub &middot; POST /scan &middot; GET /health</p>
       </div>
     </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="container">
+    <h2 class="section-title">Pricing</h2>
+    <p class="section-sub">Free forever for individuals. Upgrade to Pro once &mdash; unlock premium features for life. No subscription.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <h3>Free</h3>
+        <div class="price-num"><span class="cur">$</span>0<span class="per"> / forever</span></div>
+        <p class="price-desc">Everything you need for personal privacy in AI chat.</p>
+        <ul class="price-feats">
+          <li>30+ PII types detected &amp; masked</li>
+          <li>Luhn-validated credit card detection</li>
+          <li>Confidence scoring &amp; inline highlighting</li>
+          <li>Browser extensions (Chrome / Edge / Firefox / Safari)</li>
+          <li>CLI, REST API, VS Code extension &amp; PWA</li>
+          <li>100% local &mdash; nothing leaves your device</li>
+        </ul>
+        <a href="index.html" class="price-cta secondary">Launch Demo</a>
+      </div>
+      <div class="price-card featured">
+        <span class="tag">POPULAR</span>
+        <h3>Pro</h3>
+        <div class="price-num"><span class="cur">$</span>29<span class="per"> / one-time</span></div>
+        <p class="price-desc">Unlock advanced protection for power users. One payment, yours forever.</p>
+        <ul class="price-feats">
+          <li>Everything in Free</li>
+          <li>Advanced &amp; custom detection rules</li>
+          <li>Compliance reports (GDPR, HIPAA, PCI-DSS)</li>
+          <li>Priority support &amp; feature requests</li>
+          <li>Automatic updates &amp; new PII types</li>
+          <li>Unlimited devices &mdash; lifetime license key</li>
+        </ul>
+        <a href="https://github.com/sponsors/louiesesther-prog" target="_blank" class="price-cta primary">&#9829; Get Pro Now</a>
+      </div>
+      <div class="price-card">
+        <h3>Team</h3>
+        <div class="price-num">Custom<span class="per"></span></div>
+        <p class="price-desc">For organizations that need scale, control, and support.</p>
+        <ul class="price-feats">
+          <li>Everything in Pro</li>
+          <li>Self-hosted REST API deployment</li>
+          <li>Team policies &amp; centralized rules</li>
+          <li>Audit logs &amp; compliance export</li>
+          <li>Dedicated onboarding</li>
+          <li>Annual support contract &amp; SLA</li>
+        </ul>
+        <a href="https://github.com/sponsors/louiesesther-prog" target="_blank" class="price-cta secondary">Contact Us</a>
+      </div>
+    </div>
+    <p class="pricing-note">Open source &amp; MIT licensed. Pro is a voluntary one-time license that funds development &mdash; you can also donate via <a href="https://github.com/sponsors/louiesesther-prog" target="_blank" style="color:var(--primary-light)">GitHub Sponsors</a> or <a href="https://buymeacoffee.com/louiesesther-prog" target="_blank" style="color:var(--primary-light)">Buy Me a Coffee</a>.</p>
   </div>
 </section>
 
