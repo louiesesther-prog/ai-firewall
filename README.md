@@ -41,6 +41,13 @@ Email, Phone, SSN, Credit Card (Luhn), IP, Password, API Key, Crypto Wallet, MAC
 | PWA | `sw.js` + `manifest.json` |
 | Docker | `docker compose up api` |
 
+## Features
+
+- **PII masking** — 30+ types detected & scrubbed with confidence scoring and Luhn validation
+- **Privacy Route (VPN)** — optional secure-tunnel mode reroutes all 19 supported AI-chat sites through your own SOCKS5/HTTPS proxy/VPN endpoint, while every other site stays direct. Bring your own proxy — no servers operated by us.
+- **WebRTC / DNS leak protection** — blocks real-IP ICE candidates (allows mDNS only) and forces a non-proxied-UDP WebRTC policy while the tunnel is active
+- **100% local** — PII detection and masking never leaves your device
+
 ## Test
 
 ```bash

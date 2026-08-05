@@ -84,6 +84,77 @@ let isEnabled = true;
 let maskMode = 'placeholder';
 let stats = { requests: 0, piiDetected: 0, piiTypes: {} };
 
+// ── VPN / Privacy Route ─────────────────────────────────────
+const AI_DOMAINS = [
+  'chat.openai.com', 'chatgpt.com', 'copilot.microsoft.com', 'gemini.google.com',
+  'claude.ai', 'perplexity.ai', 'poe.com', 'groq.com', 'mistral.ai', 'cohere.ai',
+  'meta.ai', 'deepseek.com', 'you.com', 'kimi.ai', 'qwen.ai', 'jina.ai',
+  'phind.com', 'chat.google.com', 'ai.google.dev'
+];
+
+let vpnConfig = { enabled: false, host: '', port: 1080, protocol: 'socks5', leakProtect: true };
+
+function proxySupported() {
+  return !!(browser.proxy && browser.proxy.settings && browser.proxy.settings.set);
+}
+
+function buildPacScript(cfg) {
+  const scheme = cfg.protocol === 'https' ? 'HTTPS' : 'SOCKS5';
+  const host = cfg.host || '127.0.0.1';
+  const port = cfg.port || 1080;
+  const lines = AI_DOMAINS.map((d) => "  '" + d + "',").join('\n');
+  return [
+    'function FindProxyForURL(url, host) {',
+    '  var protectedHosts = [',
+    lines,
+    '  ];',
+    '  var h = host.toLowerCase();',
+    '  for (var i = 0; i < protectedHosts.length; i++) {',
+    '    var p = protectedHosts[i];',
+    '    if (h === p) return "' + scheme + ' ' + host + ':' + port + '";',
+    '    if (h.indexOf(p) === h.length - p.length && h.charAt(h.length - p.length - 1) === ".") return "' + scheme + ' ' + host + ':' + port + '";',
+    '  }',
+    '  return "DIRECT";',
+    '}'
+  ].join('\n');
+}
+
+function applyVpn() {
+  if (proxySupported()) {
+    if (vpnConfig.enabled && vpnConfig.host) {
+      browser.proxy.settings.set({
+        value: { mode: 'pac_script', pacScript: { data: buildPacScript(vpnConfig) } },
+        scope: 'regular'
+      }).catch(() => {});
+    } else {
+      browser.proxy.settings.set({ value: { mode: 'direct' }, scope: 'regular' }).catch(() => {});
+    }
+    if (vpnConfig.leakProtect && browser.privacy && browser.privacy.network && browser.privacy.network.webRTCIPHandlingPolicy) {
+      browser.privacy.network.webRTCIPHandlingPolicy.set({
+        value: vpnConfig.enabled ? 'disable_non_proxied_udp' : 'default'
+      }).catch(() => {});
+    }
+  }
+  browser.storage.local.set({ vpnConfig });
+}
+
+function vpnStatus() {
+  return {
+    enabled: vpnConfig.enabled,
+    host: vpnConfig.host,
+    port: vpnConfig.port,
+    protocol: vpnConfig.protocol,
+    leakProtect: vpnConfig.leakProtect,
+    supported: proxySupported(),
+    domains: AI_DOMAINS.length
+  };
+}
+
+browser.storage.local.get(['vpnConfig']).then((res) => {
+  if (res.vpnConfig) vpnConfig = Object.assign({}, vpnConfig, res.vpnConfig);
+  applyVpn();
+});
+
 function scrub(text) {
   if (!isEnabled || !text) return { text, map: {}, matches: [] };
 
@@ -174,13 +245,26 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'SET_MASKED_TEXT':
       sendResponse({ success: true });
       break;
+    case 'VPN_GET':
+      sendResponse(vpnStatus());
+      break;
+    case 'VPN_SET':
+      vpnConfig = Object.assign({}, vpnConfig, msg.config);
+      applyVpn();
+      sendResponse(vpnStatus());
+      break;
+    case 'VPN_TOGGLE':
+      vpnConfig.enabled = !!msg.enabled;
+      applyVpn();
+      sendResponse(vpnStatus());
+      break;
     default:
       sendResponse({ error: 'Unknown message type' });
   }
   return true;
 });
 
-browser.storage.local.get(['isEnabled', 'maskMode'], (result) => {
+browser.storage.local.get(['isEnabled', 'maskMode']).then((result) => {
   if (result.isEnabled !== undefined) isEnabled = result.isEnabled;
   if (result.maskMode !== undefined) maskMode = result.maskMode;
 });

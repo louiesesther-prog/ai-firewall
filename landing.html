@@ -126,9 +126,24 @@ footer a { color: var(--primary-light); text-decoration: none; }
 .price-cta.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
 .price-cta:hover { transform: translateY(-2px); }
 .pricing-note { text-align: center; color: var(--text3); font-size: 13px; margin-top: 24px; }
-@media (max-width:768px) {
-  .pricing-grid { grid-template-columns: 1fr; }
-  .price-card.featured { transform: none; }
+/* ── Privacy Route (VPN) demo ── */
+.route-demo { max-width: 680px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
+.route-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.route-node { flex: 1; min-width: 120px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; font-size: 13px; }
+.route-node .ic { font-size: 22px; display: block; margin-bottom: 6px; }
+.route-node .nm { color: var(--text2); font-size: 11px; display: block; margin-top: 4px; }
+.route-arrow { font-size: 20px; color: var(--accent); font-weight: 700; }
+.route-arrow.tunnel { color: #22c55e; }
+.route-toggle { margin: 20px auto 0; text-align: center; }
+.route-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 10px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.route-btn.on { background: linear-gradient(135deg,#22c55e,#16a34a); border-color: #22c55e; color: white; }
+.route-status { margin-top: 14px; text-align: center; font-size: 13px; color: var(--text2); min-height: 20px; }
+.route-status.ok { color: #22c55e; }
+.route-status.err { color: #f87171; }
+.route-note { margin-top: 10px; font-size: 12px; color: var(--text3); text-align: center; }
+
+@media (max-width:480px) {
+  .route-node { min-width: 90px; padding: 10px; font-size: 12px; }
 }
 </style>
 </head>
@@ -144,6 +159,7 @@ footer a { color: var(--primary-light); text-decoration: none; }
       <a href="#features">Features</a>
       <a href="#how">How It Works</a>
       <a href="#pii">PII Types</a>
+      <a href="#route">Privacy Route</a>
       <a href="#pricing">Pricing</a>
       <a href="https://github.com/louiesesther-prog/ai-firewall" target="_blank">GitHub</a>
       <a href="index.html" class="nav-cta">Try Demo</a>
@@ -406,6 +422,27 @@ ai-firewall scan ./docs</pre>
   </div>
 </section>
 
+<section id="route">
+  <div class="container">
+    <h2 class="section-title">Privacy Route</h2>
+    <p class="section-sub">Optional secure-tunnel mode reroutes your AI-chat traffic through your own proxy/VPN endpoint &mdash; while every other site stays on its normal direct path.</p>
+    <div class="route-demo">
+      <div class="route-row" id="routeRow">
+        <div class="route-node"><span class="ic">&#128187;</span>Your Browser<span class="nm">AI chat sites only</span></div>
+        <span class="route-arrow" id="arrow1">&#8594;</span>
+        <div class="route-node"><span class="ic" id="tunnelIc">&#128274;</span>Secure Tunnel<span class="nm" id="tunnelState">off</span></div>
+        <span class="route-arrow" id="arrow2">&#8594;</span>
+        <div class="route-node"><span class="ic">&#129302;</span>AI Provider<span class="nm" id="aiState">direct</span></div>
+      </div>
+      <div class="route-toggle">
+        <button class="route-btn" id="routeBtn">&#128274; Enable Privacy Route</button>
+      </div>
+      <div class="route-status" id="routeStatus">Traffic currently goes direct to AI providers.</div>
+      <div class="route-note">Demo simulation. In the browser extension, toggle <strong>Privacy Route</strong>, enter your own SOCKS5/HTTPS proxy &amp; port, and all 19 supported AI sites route through it. We don't provide servers &mdash; you bring your own tunnel.</div>
+    </div>
+  </div>
+</section>
+
 <div class="container">
   <div class="cta">
     <h2>Try It Now</h2>
@@ -420,6 +457,33 @@ ai-firewall scan ./docs</pre>
     <p style="margin-top:8px"><a href="index.html">Demo</a> &middot; <a href="https://github.com/louiesesther-prog/ai-firewall">GitHub</a> &middot; <a href="extension/PRIVACY.md">Privacy Policy</a></p>
   </div>
 </footer>
+
+<script>
+(function() {
+  var btn = document.getElementById('routeBtn');
+  var status = document.getElementById('routeStatus');
+  var tunnelState = document.getElementById('tunnelState');
+  var tunnelIc = document.getElementById('tunnelIc');
+  var aiState = document.getElementById('aiState');
+  var arrow1 = document.getElementById('arrow1');
+  var arrow2 = document.getElementById('arrow2');
+  var on = false;
+  btn.addEventListener('click', function() {
+    on = !on;
+    btn.classList.toggle('on', on);
+    btn.textContent = on ? '&#128274; Disable Privacy Route' : '&#128274; Enable Privacy Route';
+    tunnelState.textContent = on ? 'active' : 'off';
+    tunnelIc.textContent = on ? '&#128737;' : '&#128274;';
+    aiState.textContent = on ? 'via tunnel' : 'direct';
+    arrow1.classList.toggle('tunnel', on);
+    arrow2.classList.toggle('tunnel', on);
+    status.className = 'route-status ' + (on ? 'ok' : '');
+    status.textContent = on
+      ? '19 AI sites now routed through your proxy. All other traffic stays direct.'
+      : 'Traffic currently goes direct to AI providers.';
+  });
+})();
+</script>
 
 </body>
 </html>

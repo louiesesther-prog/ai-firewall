@@ -13,6 +13,7 @@
   document.documentElement.appendChild(indicator);
 
   var maskMode = 'placeholder';
+  var isEnabled = true;
   var piiMap = {};
   var stats = { requests: 0, piiDetected: 0, types: {} };
 
@@ -53,6 +54,8 @@
   function luhnCheck(num) {
     var digits = num.replace(/\D/g, '');
     if (digits.length < 13 || digits.length > 19) return false;
+    var clean = num.replace(/[-\s]/g, '');
+    if (/^0+$/.test(clean)) return false;
     var sum = 0, alt = false;
     for (var i = digits.length - 1; i >= 0; i--) {
       var n = parseInt(digits[i], 10);
@@ -173,6 +176,11 @@
     indicator.style.background = '#22c55e';
 
     input.addEventListener('input', function() {
+      if (!isEnabled) {
+        indicator.textContent = '[AI Firewall] Disabled';
+        indicator.style.background = '#6b7280';
+        return;
+      }
       var text = input.value || input.textContent || '';
       var found = detect(text);
       if (found.length > 0) {
@@ -185,6 +193,7 @@
     });
 
     input.addEventListener('keydown', function(e) {
+      if (!isEnabled) return;
       if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         var text = input.value || input.textContent || '';
         var masked = mask(text);
@@ -219,9 +228,82 @@
   var observer = new MutationObserver(check);
   observer.observe(document.body, { childList: true, subtree: true });
 
-  chrome.storage.local.get(['maskMode'], function(r) {
+  chrome.storage.local.get(['maskMode', 'isEnabled'], function(r) {
     if (r.maskMode) maskMode = r.maskMode;
+    if (r.isEnabled !== undefined) {
+      isEnabled = r.isEnabled;
+      indicator.textContent = isEnabled ? '[AI Firewall] Ready' : '[AI Firewall] Disabled';
+      indicator.style.background = isEnabled ? '#6366f1' : '#6b7280';
+    }
   });
+
+  chrome.storage.onChanged.addListener(function(changes, area) {
+    if (area === 'local') {
+      if (changes.isEnabled !== undefined) {
+        isEnabled = changes.isEnabled.newValue;
+        indicator.textContent = isEnabled ? '[AI Firewall] Ready' : '[AI Firewall] Disabled';
+        indicator.style.background = isEnabled ? '#6366f1' : '#6b7280';
+      }
+      if (changes.maskMode !== undefined) {
+        maskMode = changes.maskMode.newValue;
+      }
+    }
+  });
+
+  // ── WebRTC / DNS leak protection (main-world injection) ──
+  var vpnEnabled = false;
+  var LEAK_PROTECT_SRC = '(' + function() {
+    if (window.__aiFwLeakProtected) return;
+    window.__aiFwLeakProtected = true;
+    try {
+      var RTP = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+      if (!RTP) return;
+      var proto = RTP.prototype;
+      var addIce = proto.addIceCandidate;
+      proto.addIceCandidate = function(candidate) {
+        if (candidate && typeof candidate.candidate === 'string') {
+          var c = candidate.candidate;
+          // Block host candidates that reveal a real IP (allow mDNS .local only)
+          if (/a=candidate:/.test(c) && /typ\s+host\b/.test(c) && !/\.local\b/.test(c)) {
+            return Promise.resolve();
+          }
+        }
+        return addIce.call(this, candidate);
+      };
+      Object.defineProperty(proto, 'iceTransportPolicy', {
+        configurable: true,
+        get: function() { return 'relay'; },
+        set: function() {}
+      });
+    } catch (e) {}
+  }.toString() + ')();';
+
+  function applyLeakProtect() {
+    try {
+      var s = document.createElement('script');
+      s.textContent = LEAK_PROTECT_SRC;
+      (document.head || document.documentElement).appendChild(s);
+      s.remove();
+    } catch (e) {}
+  }
+
+  function loadVpnState() {
+    chrome.storage.local.get(['vpnConfig'], function(r) {
+      if (r.vpnConfig) {
+        vpnEnabled = !!r.vpnConfig.enabled && r.vpnConfig.leakProtect !== false;
+        if (vpnEnabled) applyLeakProtect();
+      }
+    });
+  }
+  chrome.storage.onChanged.addListener(function(changes) {
+    if (changes.vpnConfig !== undefined) {
+      var cfg = changes.vpnConfig.newValue || {};
+      var shouldEnable = !!cfg.enabled && cfg.leakProtect !== false;
+      if (shouldEnable && !vpnEnabled) applyLeakProtect();
+      vpnEnabled = shouldEnable;
+    }
+  });
+  loadVpnState();
 
   console.log('[AI Firewall] v2 loaded (' + patterns.length + ' PII types, Luhn, confidence scoring)');
   indicator.textContent = '[AI Firewall] Ready';

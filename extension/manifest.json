@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "description": "Detect and mask 30+ PII types in AI chat apps. 100% local with confidence scoring and Luhn validation.",
   "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
-  "permissions": ["storage"],
+  "permissions": ["storage", "proxy", "privacy"],
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",

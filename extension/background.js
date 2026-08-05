@@ -90,6 +90,89 @@ let isEnabled = true;
 let maskMode = 'placeholder';
 let stats = { requests: 0, piiDetected: 0, piiTypes: {} };
 
+// ── VPN / Privacy Route ─────────────────────────────────────
+const AI_DOMAINS = [
+  'chat.openai.com', 'chatgpt.com', 'copilot.microsoft.com', 'gemini.google.com',
+  'claude.ai', 'perplexity.ai', 'poe.com', 'groq.com', 'mistral.ai', 'cohere.ai',
+  'meta.ai', 'deepseek.com', 'you.com', 'kimi.ai', 'qwen.ai', 'jina.ai',
+  'phind.com', 'chat.google.com', 'ai.google.dev'
+];
+
+let vpnConfig = { enabled: false, host: '', port: 1080, protocol: 'socks5', leakProtect: true };
+
+function vpnApi() {
+  return (typeof browser !== 'undefined' && browser.proxy) ? browser.proxy : chrome.proxy;
+}
+
+function proxySupported() {
+  const api = vpnApi();
+  return !!(api && api.settings && api.settings.set);
+}
+
+function buildPacScript(cfg) {
+  const scheme = cfg.protocol === 'https' ? 'HTTPS' : 'SOCKS5';
+  const host = cfg.host || '127.0.0.1';
+  const port = cfg.port || 1080;
+  const lines = AI_DOMAINS.map((d) => "  '" + d + "',").join('\n');
+  return [
+    'function FindProxyForURL(url, host) {',
+    '  var protectedHosts = [',
+    lines,
+    '  ];',
+    '  var h = host.toLowerCase();',
+    '  for (var i = 0; i < protectedHosts.length; i++) {',
+    '    var p = protectedHosts[i];',
+    '    if (h === p) return "' + scheme + ' ' + host + ':' + port + '";',
+    '    if (h.indexOf(p) === h.length - p.length && h.charAt(h.length - p.length - 1) === ".") return "' + scheme + ' ' + host + ':' + port + '";',
+    '  }',
+    '  return "DIRECT";',
+    '}'
+  ].join('\n');
+}
+
+function applyVpn(callback) {
+  const cfg = vpnConfig;
+  if (proxySupported()) {
+    const api = vpnApi();
+    if (cfg.enabled && cfg.host) {
+      const config = { mode: 'pac_script', pacScript: { data: buildPacScript(cfg) } };
+      api.settings.set({ value: config, scope: 'regular' }, callback || (() => {}));
+    } else {
+      api.settings.set({ value: { mode: 'direct' }, scope: 'regular' }, callback || (() => {}));
+    }
+    if (cfg.leakProtect) {
+      try {
+        const privacy = (typeof browser !== 'undefined' && browser.privacy) ? browser.privacy : chrome.privacy;
+        if (privacy && privacy.network && privacy.network.webRTCIPHandlingPolicy) {
+          privacy.network.webRTCIPHandlingPolicy.set({
+            value: cfg.enabled ? 'disable_non_proxied_udp' : 'default'
+          });
+        }
+      } catch (e) { /* privacy API optional */ }
+    }
+  }
+  chrome.storage.local.set({ vpnConfig: cfg });
+}
+
+function vpnStatus() {
+  return {
+    enabled: vpnConfig.enabled,
+    host: vpnConfig.host,
+    port: vpnConfig.port,
+    protocol: vpnConfig.protocol,
+    leakProtect: vpnConfig.leakProtect,
+    supported: proxySupported(),
+    domains: AI_DOMAINS.length
+  };
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.local.get(['vpnConfig'], (res) => {
+    if (res.vpnConfig) vpnConfig = Object.assign({}, vpnConfig, res.vpnConfig);
+    applyVpn();
+  });
+});
+
 function scrub(text) {
   if (!isEnabled || !text) return { text, map: {}, matches: [] };
 
@@ -171,15 +254,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'GET_ENABLED':
       sendResponse({ isEnabled });
       break;
+    case 'VPN_GET':
+      sendResponse(vpnStatus());
+      break;
+    case 'VPN_SET':
+      vpnConfig = Object.assign({}, vpnConfig, msg.config);
+      applyVpn(() => sendResponse(vpnStatus()));
+      break;
+    case 'VPN_TOGGLE':
+      vpnConfig.enabled = !!msg.enabled;
+      applyVpn(() => sendResponse(vpnStatus()));
+      break;
     default:
       sendResponse({ error: 'Unknown message type' });
   }
   return true;
 });
 
-chrome.storage.local.get(['isEnabled', 'maskMode'], (result) => {
+chrome.storage.local.get(['isEnabled', 'maskMode', 'vpnConfig'], (result) => {
   if (result.isEnabled !== undefined) isEnabled = result.isEnabled;
   if (result.maskMode !== undefined) maskMode = result.maskMode;
+  if (result.vpnConfig) vpnConfig = Object.assign({}, vpnConfig, result.vpnConfig);
+  applyVpn();
 });
 
 console.log('[AI Firewall] Background service worker loaded (v2 with ' + PII_RULES.length + ' PII types)');

@@ -18,7 +18,9 @@
   "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "proxy",
+    "privacy"
   ],
   "host_permissions": [
     "*://chat.openai.com/*",

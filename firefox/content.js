@@ -259,6 +259,60 @@ function init() {
   }
 }
 
+// ── WebRTC / DNS leak protection (main-world injection) ──
+let vpnEnabled = false;
+const LEAK_PROTECT_SRC = '(' + function() {
+  if (window.__aiFwLeakProtected) return;
+  window.__aiFwLeakProtected = true;
+  try {
+    const RTP = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+    if (!RTP) return;
+    const proto = RTP.prototype;
+    const addIce = proto.addIceCandidate;
+    proto.addIceCandidate = function(candidate) {
+      if (candidate && typeof candidate.candidate === 'string') {
+        const c = candidate.candidate;
+        if (/a=candidate:/.test(c) && /typ\s+host\b/.test(c) && !/\.local\b/.test(c)) {
+          return Promise.resolve();
+        }
+      }
+      return addIce.call(this, candidate);
+    };
+    Object.defineProperty(proto, 'iceTransportPolicy', {
+      configurable: true,
+      get: () => 'relay',
+      set: () => {}
+    });
+  } catch (e) {}
+}.toString() + ')();';
+
+function applyLeakProtect() {
+  try {
+    const s = document.createElement('script');
+    s.textContent = LEAK_PROTECT_SRC;
+    (document.head || document.documentElement).appendChild(s);
+    s.remove();
+  } catch (e) {}
+}
+
+function loadVpnState() {
+  browser.storage.local.get(['vpnConfig']).then((r) => {
+    if (r.vpnConfig) {
+      vpnEnabled = !!r.vpnConfig.enabled && r.vpnConfig.leakProtect !== false;
+      if (vpnEnabled) applyLeakProtect();
+    }
+  }).catch(() => {});
+}
+browser.storage.onChanged.addListener((changes) => {
+  if (changes.vpnConfig !== undefined) {
+    const cfg = changes.vpnConfig.newValue || {};
+    const shouldEnable = !!cfg.enabled && cfg.leakProtect !== false;
+    if (shouldEnable && !vpnEnabled) applyLeakProtect();
+    vpnEnabled = shouldEnable;
+  }
+});
+loadVpnState();
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

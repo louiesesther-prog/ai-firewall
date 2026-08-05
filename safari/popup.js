@@ -6,6 +6,72 @@ document.addEventListener('DOMContentLoaded', () => {
   const piiCount = document.getElementById('piiCount');
   const piiList = document.getElementById('piiList');
   const clearStats = document.getElementById('clearStats');
+  const vpnSection = document.getElementById('vpnSection');
+  const vpnToggle = document.getElementById('vpnToggle');
+  const vpnDot = document.getElementById('vpnDot');
+  const vpnHost = document.getElementById('vpnHost');
+  const vpnPort = document.getElementById('vpnPort');
+  const vpnProto = document.getElementById('vpnProto');
+  const vpnLeakToggle = document.getElementById('vpnLeakToggle');
+  const vpnStatus = document.getElementById('vpnStatus');
+
+  function setVpnUI(state) {
+    if (!state) return;
+    if (state.supported === false) {
+      vpnToggle.checked = false;
+      vpnToggle.disabled = true;
+      vpnHost.disabled = true;
+      vpnPort.disabled = true;
+      vpnProto.disabled = true;
+      vpnLeakToggle.disabled = true;
+      vpnStatus.className = 'vpn-status err';
+      vpnStatus.textContent = 'Privacy Route is not supported by this browser.';
+      return;
+    }
+    vpnToggle.checked = !!state.enabled;
+    vpnHost.value = state.host || '';
+    vpnPort.value = state.port || '';
+    vpnProto.value = state.protocol || 'socks5';
+    vpnLeakToggle.checked = state.leakProtect !== false;
+    vpnSection.classList.toggle('on', !!state.enabled);
+    vpnDot.classList.toggle('on', !!state.enabled);
+    if (state.enabled) {
+      if (state.host) {
+        vpnStatus.className = 'vpn-status ok';
+        vpnStatus.textContent = 'Active — ' + state.protocol.toUpperCase() + ' ' + state.host + ':' + state.port + ' (' + state.domains + ' AI sites routed).';
+      } else {
+        vpnStatus.className = 'vpn-status err';
+        vpnStatus.textContent = 'Enabled but no host set — add a proxy/VPN host above.';
+      }
+    } else {
+      vpnStatus.className = 'vpn-status';
+      vpnStatus.textContent = 'Reroutes AI chat traffic through your own proxy. Traffic for other sites stays direct.';
+    }
+  }
+
+  function sendVpn(msg) {
+    return browser.runtime.sendMessage(msg).catch(() => null);
+  }
+
+  function loadVpn() {
+    sendVpn({ type: 'VPN_GET' }).then(setVpnUI);
+  }
+
+  vpnToggle.addEventListener('change', () => {
+    sendVpn({ type: 'VPN_SET', config: { enabled: vpnToggle.checked } }).then(setVpnUI);
+  });
+  vpnHost.addEventListener('change', () => {
+    sendVpn({ type: 'VPN_SET', config: { host: vpnHost.value.trim() } }).then(setVpnUI);
+  });
+  vpnPort.addEventListener('change', () => {
+    sendVpn({ type: 'VPN_SET', config: { port: parseInt(vpnPort.value, 10) || 1080 } }).then(setVpnUI);
+  });
+  vpnProto.addEventListener('change', () => {
+    sendVpn({ type: 'VPN_SET', config: { protocol: vpnProto.value } }).then(setVpnUI);
+  });
+  vpnLeakToggle.addEventListener('change', () => {
+    sendVpn({ type: 'VPN_SET', config: { leakProtect: vpnLeakToggle.checked } }).then(setVpnUI);
+  });
 
   function updateStats() {
     browser.runtime.sendMessage({ type: 'GET_STATS' }).then((response) => {
@@ -62,5 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   updateStats();
+  loadVpn();
   setInterval(updateStats, 2000);
 });

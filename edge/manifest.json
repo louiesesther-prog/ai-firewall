@@ -2,9 +2,9 @@
   "manifest_version": 3,
   "name": "AI Personal Firewall",
   "version": "2.0.0",
-  "description": "Protect your privacy by scrubbing 30+ PII types from AI prompts. Luhn-validated CC, confidence scoring, realistic fakers.",
+  "description": "Detect and mask 30+ PII types in AI chat apps. 100% local with confidence scoring and Luhn validation.",
   "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
-  "permissions": ["storage"],
+  "permissions": ["storage", "proxy", "privacy"],
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",

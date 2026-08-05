@@ -250,6 +250,61 @@
     }
   });
 
+  // ── WebRTC / DNS leak protection (main-world injection) ──
+  var vpnEnabled = false;
+  var LEAK_PROTECT_SRC = '(' + function() {
+    if (window.__aiFwLeakProtected) return;
+    window.__aiFwLeakProtected = true;
+    try {
+      var RTP = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+      if (!RTP) return;
+      var proto = RTP.prototype;
+      var addIce = proto.addIceCandidate;
+      proto.addIceCandidate = function(candidate) {
+        if (candidate && typeof candidate.candidate === 'string') {
+          var c = candidate.candidate;
+          // Block host candidates that reveal a real IP (allow mDNS .local only)
+          if (/a=candidate:/.test(c) && /typ\s+host\b/.test(c) && !/\.local\b/.test(c)) {
+            return Promise.resolve();
+          }
+        }
+        return addIce.call(this, candidate);
+      };
+      Object.defineProperty(proto, 'iceTransportPolicy', {
+        configurable: true,
+        get: function() { return 'relay'; },
+        set: function() {}
+      });
+    } catch (e) {}
+  }.toString() + ')();';
+
+  function applyLeakProtect() {
+    try {
+      var s = document.createElement('script');
+      s.textContent = LEAK_PROTECT_SRC;
+      (document.head || document.documentElement).appendChild(s);
+      s.remove();
+    } catch (e) {}
+  }
+
+  function loadVpnState() {
+    chrome.storage.local.get(['vpnConfig'], function(r) {
+      if (r.vpnConfig) {
+        vpnEnabled = !!r.vpnConfig.enabled && r.vpnConfig.leakProtect !== false;
+        if (vpnEnabled) applyLeakProtect();
+      }
+    });
+  }
+  chrome.storage.onChanged.addListener(function(changes) {
+    if (changes.vpnConfig !== undefined) {
+      var cfg = changes.vpnConfig.newValue || {};
+      var shouldEnable = !!cfg.enabled && cfg.leakProtect !== false;
+      if (shouldEnable && !vpnEnabled) applyLeakProtect();
+      vpnEnabled = shouldEnable;
+    }
+  });
+  loadVpnState();
+
   console.log('[AI Firewall] v2 loaded (' + patterns.length + ' PII types, Luhn, confidence scoring)');
   indicator.textContent = '[AI Firewall] Ready';
 })();

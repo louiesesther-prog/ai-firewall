@@ -26,6 +26,16 @@ The AI Personal Firewall extension **does not collect, transmit, or store** any 
 
 **No data is shared with any third party.** The extension makes no network requests of its own. It only modifies text within your browser before it is sent to the AI platform you are using.
 
+### Optional: Privacy Route (VPN) mode
+
+The extension includes an optional **Privacy Route** feature that can reroute traffic to supported AI-chat sites through a proxy/VPN endpoint **you** configure. When enabled:
+
+- The proxy **host, port, and protocol you enter are stored only in `chrome.storage.local`** on your device and are never transmitted to us.
+- Your traffic to the 19 supported AI sites is routed through that proxy; all other sites continue to use your normal connection.
+- **We do not provide, operate, or maintain any proxy/VPN servers.** You supply your own endpoint (a SOCKS5 tunnel, a personal VPS, or a commercial VPN gateway). Any encryption between your browser and that endpoint is provided by the proxy protocol you choose, not by us.
+- The WebRTC/DNS leak-protection feature blocks real-IP ICE candidates and applies a stricter WebRTC IP-handling policy while the tunnel is active, to reduce the chance your true IP is exposed.
+- Safari does not support proxy routing, so Privacy Route is disabled there; PII masking continues to work normally.
+
 ## Data Retention
 
 - PII maps are held in memory only and cleared on page navigation or refresh.
