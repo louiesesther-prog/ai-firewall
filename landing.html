@@ -425,7 +425,7 @@ ai-firewall scan ./docs</pre>
 <section id="route">
   <div class="container">
     <h2 class="section-title">Privacy Route</h2>
-    <p class="section-sub">Optional secure-tunnel mode reroutes your AI-chat traffic through your own proxy/VPN endpoint &mdash; while every other site stays on its normal direct path.</p>
+    <p class="section-sub">Optional secure-tunnel mode reroutes your AI-chat traffic through your own proxy or full WireGuard VPN endpoint &mdash; while every other site stays on its normal direct path.</p>
     <div class="route-demo">
       <div class="route-row" id="routeRow">
         <div class="route-node"><span class="ic">&#128187;</span>Your Browser<span class="nm">AI chat sites only</span></div>
@@ -438,7 +438,7 @@ ai-firewall scan ./docs</pre>
         <button class="route-btn" id="routeBtn">&#128274; Enable Privacy Route</button>
       </div>
       <div class="route-status" id="routeStatus">Traffic currently goes direct to AI providers.</div>
-      <div class="route-note">Demo simulation. In the browser extension, toggle <strong>Privacy Route</strong>, enter your own SOCKS5/HTTPS proxy &amp; port, and all 19 supported AI sites route through it. We don't provide servers &mdash; you bring your own tunnel.</div>
+      <div class="route-note">Demo simulation. The browser-extension <strong>Privacy Route</strong> routes all 19 AI sites through your own SOCKS5/HTTPS proxy. For full network protection, pair it with the bundled <a href="vpn/README.md" style="color:var(--primary-light)">native WireGuard VPN</a> (server + client + kill switch) &mdash; <code>vpn/socks5-bridge.mjs</code> bridges the two.</div>
     </div>
   </div>
 </section>

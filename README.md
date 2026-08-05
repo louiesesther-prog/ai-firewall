@@ -40,12 +40,14 @@ Email, Phone, SSN, Credit Card (Luhn), IP, Password, API Key, Crypto Wallet, MAC
 | VS Code Ext | `.vscode-ext/` — install from VSIX |
 | PWA | `sw.js` + `manifest.json` |
 | Docker | `docker compose up api` |
+| Native VPN | `vpn/` — real WireGuard VPN (server + client + kill switch) |
 
 ## Features
 
 - **PII masking** — 30+ types detected & scrubbed with confidence scoring and Luhn validation
-- **Privacy Route (VPN)** — optional secure-tunnel mode reroutes all 19 supported AI-chat sites through your own SOCKS5/HTTPS proxy/VPN endpoint, while every other site stays direct. Bring your own proxy — no servers operated by us.
+- **Privacy Route (VPN)** — optional secure-tunnel mode reroutes all 19 supported AI-chat sites through your own SOCKS5/HTTPS proxy, while every other site stays direct. Bring your own proxy — no servers operated by us.
 - **WebRTC / DNS leak protection** — blocks real-IP ICE candidates (allows mDNS only) and forces a non-proxied-UDP WebRTC policy while the tunnel is active
+- **Full native VPN** — a complete WireGuard-based VPN (kernel TUN/TAP tunnel, kill-switch, NAT server) in `vpn/`. Generate real X25519 keys, provision a VPS server, and connect the Windows client. See `vpn/README.md`.
 - **100% local** — PII detection and masking never leaves your device
 
 ## Test
