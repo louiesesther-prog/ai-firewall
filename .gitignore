@@ -1,6 +1,8 @@
 node_modules/
 dist/
-!dist/ai-firewall-*.zip
+!dist/
+dist/*
+!dist/*.zip
 *.zip
 !dist/*.zip
 tmp/

@@ -16,6 +16,7 @@
     }
   },
   "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
+  "support_url": "https://ai-firewall.org/support.html",
   "permissions": [
     "activeTab",
     "storage",
