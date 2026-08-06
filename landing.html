@@ -70,6 +70,20 @@ section { padding: 70px 0; }
 .vpn-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 18px; margin-top: 28px; }
 .vpn-note { margin-top: 24px; font-size: 13px; color: var(--text2); text-align: center; }
 
+/* ── Downloads / Screenshots ── */
+.dl-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 18px; max-width: 960px; margin: 0 auto; }
+.dl-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-align: center; text-decoration: none; color: var(--text); transition: all .2s; }
+.dl-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.dl-card .dl-ico { font-size: 34px; margin-bottom: 10px; }
+.dl-card h3 { font-size: 16px; margin-bottom: 6px; }
+.dl-card p { font-size: 12.5px; color: var(--text2); margin-bottom: 12px; }
+.dl-btn { display: inline-block; background: var(--gradient); color: white; font-size: 13px; font-weight: 600; padding: 8px 20px; border-radius: 8px; }
+.shots-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+.shot { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.shot img { width: 100%; display: block; border-bottom: 1px solid var(--border); }
+.shot .cap { padding: 12px 16px; font-size: 13px; color: var(--text2); }
+.shot .cap b { color: var(--text); }
+
 /* ── Docs ── */
 .docs-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap: 18px; max-width: 960px; margin: 0 auto; }
 .doc-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 8px; transition: all .2s; }
@@ -182,6 +196,8 @@ footer a { color: var(--primary-light); text-decoration: none; }
       <a href="#pii">PII Types</a>
       <a href="#route">Privacy Route</a>
       <a href="#vpn">VPN</a>
+      <a href="#downloads">Downloads</a>
+      <a href="#screenshots">Screenshots</a>
       <a href="#docs">Docs</a>
       <a href="#pricing">Pricing</a>
       <a href="index.html" class="nav-cta">Try Demo</a>
@@ -522,6 +538,64 @@ node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
       </div>
     </div>
     <p class="vpn-note">Works with the extension's <a href="#route" style="color:var(--primary-light)">Privacy Route</a> &mdash; the SOCKS5 bridge (<code>vpn/socks5-bridge.mjs</code>) connects them.</p>
+  </div>
+</section>
+
+<section id="downloads" style="background:var(--bg2)">
+  <div class="container">
+    <h2 class="section-title">Download</h2>
+    <p class="section-sub">Get the extension for your browser. Load it as an unpacked extension, or grab the source for any platform.</p>
+    <div class="dl-grid">
+      <a class="dl-card" href="dist/ai-firewall-chrome.zip">
+        <div class="dl-ico">&#127757;</div>
+        <h3>Chrome</h3>
+        <p>Install by loading unpacked in <code>chrome://extensions</code></p>
+        <span class="dl-btn">Download ZIP</span>
+      </a>
+      <a class="dl-card" href="dist/ai-firewall-edge.zip">
+        <div class="dl-ico">&#127760;</div>
+        <h3>Edge</h3>
+        <p>Load unpacked in <code>edge://extensions</code></p>
+        <span class="dl-btn">Download ZIP</span>
+      </a>
+      <a class="dl-card" href="dist/ai-firewall-firefox.zip">
+        <div class="dl-ico">&#128025;</div>
+        <h3>Firefox</h3>
+        <p>Load a temporary add-on via <code>about:debugging</code></p>
+        <span class="dl-btn">Download ZIP</span>
+      </a>
+      <a class="dl-card" href="dist/ai-firewall-safari.zip">
+        <div class="dl-ico">&#128188;</div>
+        <h3>Safari</h3>
+        <p>For macOS &mdash; wrap with the Safari Web Extension tool</p>
+        <span class="dl-btn">Download ZIP</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="screenshots">
+  <div class="container">
+    <h2 class="section-title">Screenshots</h2>
+    <p class="section-sub">See AI Personal Firewall in action &mdash; real-time protection, detection, and analytics.</p>
+    <div class="shots-grid">
+      <div class="shot">
+        <img src="assets/screenshot-1-dashboard.png" alt="Popup dashboard showing scrubbing stats and PII breakdown">
+        <div class="cap"><b>Privacy Dashboard</b><br>Real-time scrubbing stats, PII counts, and one-click toggle.</div>
+      </div>
+      <div class="shot">
+        <img src="assets/screenshot-2-detection.png" alt="PII detection and masking in a ChatGPT chat">
+        <div class="cap"><b>Auto-Detection in ChatGPT</b><br>Email, phone, SSN, and card masked with confidence scores.</div>
+      </div>
+      <div class="shot">
+        <img src="assets/screenshot-3-stats.png" alt="Analytics dashboard with bar chart and PII breakdown">
+        <div class="cap"><b>Live Statistics</b><br>Detections by type, platforms, and masked-volume trends.</div>
+      </div>
+    </div>
+    <p class="vpn-note">Promotional art for the store listings:<br>
+      <img src="assets/small-promo.png" alt="Small promo tile" style="max-width:440px;width:88%;margin-top:14px;border-radius:10px;border:1px solid var(--border)"><br>
+      <img src="assets/marquee-promo.png" alt="Marquee promo tile" style="max-width:100%;margin-top:14px;border-radius:10px;border:1px solid var(--border)">
+    </p>
   </div>
 </section>
 

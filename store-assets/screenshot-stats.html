@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=1280">
+<title>AI Personal Firewall — Screenshot 3</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { width:1280px; height:800px; overflow:hidden; background:#0f0f1a; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0f0f1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; width: 1280px; }
+.page { width: 1280px; height: 800px; position: relative; overflow: hidden; }
+.pg-label { position: absolute; bottom: 8px; right: 12px; color: #444; font-size: 11px; z-index: 10; }
+
+/* ─── Screenshot 1: Popup Dashboard ─── */
+.dash { display: flex; align-items: center; justify-content: center; gap: 60px; width: 1280px; height: 800px; background: #1a1a2e; }
+.popup { width: 340px; background: #1a1a2e; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); overflow: hidden; }
+.popup-header { background: linear-gradient(135deg,#667eea,#764ba2); padding: 20px; text-align: center; color: white; }
+.popup-header h1 { font-size: 18px; }
+.popup-header .sub { font-size: 12px; opacity: .85; margin-top: 4px; }
+.popup-body { padding: 16px; }
+.popup-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.stat-box { background: #16213e; padding: 16px; border-radius: 10px; text-align: center; }
+.stat-num { font-size: 28px; font-weight: 700; color: #00d9ff; }
+.stat-lbl { font-size: 11px; color: #666; margin-top: 4px; }
+.popup-list { background: #16213e; border-radius: 10px; padding: 12px; }
+.popup-item { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; border-bottom: 1px solid #0f3460; }
+.popup-item:last-child { border: 0; }
+.item-type { color: #00d9ff; }
+.item-count { color: #e94560; }
+.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #16213e; border-bottom: 1px solid #0f3460; }
+.toggle-lbl { font-size: 13px; color: white; }
+.toggle { width: 44px; height: 22px; background: #00d9ff; border-radius: 22px; position: relative; }
+.toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 2px; left: 24px; }
+.app-badges { padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+.badge { background: #0f3460; padding: 4px 12px; border-radius: 12px; font-size: 11px; color: #aaa; }
+.badge.active { background: #667eea; color: white; }
+.side-panel { width: 380px; }
+.side-panel h2 { color: white; font-size: 22px; margin-bottom: 8px; }
+.side-panel p { color: #888; line-height: 1.6; font-size: 14px; }
+
+/* ─── Screenshot 2: PII Detection ─── */
+.chat-mock { display: flex; flex-direction: column; width: 1280px; height: 800px; background: #212121; }
+.chat-topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #171717; border-bottom: 1px solid #333; }
+.chat-topbar .dot { width: 12px; height: 12px; border-radius: 50%; }
+.chat-topbar .green { background: #4ade80; }
+.chat-topbar .yellow { background: #facc15; }
+.chat-topbar .red { background: #f87171; }
+.chat-topbar .title { color: #ccc; font-size: 13px; margin-left: 8px; }
+.chat-area { flex: 1; padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; justify-content: flex-end; }
+.msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; position: relative; }
+.msg.user { background: #2f2f3a; color: #ddd; align-self: flex-end; }
+.msg.ai { background: #1e1e2a; color: #ccc; align-self: flex-start; border: 1px solid #333; }
+.msg .pii-tag { display: inline-block; background: #e94560; color: white; padding: 1px 8px; border-radius: 4px; font-size: 12px; margin: 0 2px; }
+.msg .pii-tag.safe { background: #22c55e; }
+.msg .meta { font-size: 11px; color: #666; margin-top: 4px; display: flex; gap: 8px; }
+.chat-input-row { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #171717; border-top: 1px solid #333; }
+.chat-input { flex: 1; background: #2f2f3a; border: none; border-radius: 24px; padding: 12px 20px; color: white; font-size: 14px; }
+.chat-input::placeholder { color: #555; }
+.send-btn { width: 40px; height: 40px; border-radius: 50%; background: #667eea; border: none; display: flex; align-items: center; justify-content: center; }
+.send-btn svg { width: 18px; height: 18px; fill: white; }
+.shield { position: absolute; top: 12px; right: 12px; background: #1a1a2e; border-radius: 8px; padding: 8px 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 5; }
+.shield svg { width: 20px; height: 20px; }
+.shield .txt { font-size: 12px; color: #4ade80; }
+.shield .count { font-size: 11px; color: #888; }
+
+/* ─── Screenshot 3: Stats Dashboard ─── */
+.stats-dash { display: flex; flex-direction: column; width: 1280px; height: 800px; background: #0f0f1a; padding: 30px 40px; }
+.stats-dash h1 { color: white; font-size: 28px; margin-bottom: 4px; }
+.stats-dash .sub { color: #666; font-size: 14px; margin-bottom: 20px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 20px; }
+.sg-box { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; }
+.sg-box .num { font-size: 32px; font-weight: 700; color: #00d9ff; }
+.sg-box .lbl { font-size: 13px; color: #666; margin-top: 4px; }
+.sg-box .trend { font-size: 12px; color: #4ade80; margin-top: 4px; }
+.chart-section { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; margin-bottom: 20px; }
+.chart-section h3 { color: white; font-size: 16px; margin-bottom: 12px; }
+.bar-chart { display: flex; gap: 8px; align-items: flex-end; height: 100px; }
+.bar { flex: 1; border-radius: 4px 4px 0 0; min-height: 8px; position: relative; }
+.bar .bl { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #666; white-space: nowrap; }
+.pii-breakdown { background: #1a1a2e; border-radius: 12px; padding: 20px; border: 1px solid #2a2a3e; flex: 1; }
+.pii-breakdown h3 { color: white; font-size: 16px; margin-bottom: 12px; }
+.pii-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #1f1f30; }
+.pii-row:last-child { border: 0; }
+.pii-row .type { width: 110px; font-size: 13px; color: #ccc; }
+.pii-row .bar2 { flex: 1; height: 8px; background: #2a2a3e; border-radius: 8px; overflow: hidden; }
+.pii-row .bar2 .fill { height: 100%; border-radius: 8px; }
+.pii-row .val { font-size: 13px; color: #888; width: 40px; text-align: right; }
+
+</style>
+</head><body>
+<div class="page" style="width:1280px;height:800px;position:relative;overflow:hidden">
+
+  <h1>Privacy Dashboard</h1>
+  <div class="sub">Real-time PII detection and masking statistics</div>
+  <div class="stats-grid">
+    <div class="sg-box"><div class="num">12,847</div><div class="lbl">Total Requests</div><div class="trend">+12% this week</div></div>
+    <div class="sg-box"><div class="num">38,291</div><div class="lbl">PII Items Masked</div><div class="trend">+8% this week</div></div>
+    <div class="sg-box"><div class="num">30</div><div class="lbl">PII Types Supported</div><div class="trend">Including 10 i18n</div></div>
+    <div class="sg-box"><div class="num">17</div><div class="lbl">AI Platforms</div><div class="trend">All major providers</div></div>
+  </div>
+  <div class="chart-section">
+    <h3>PII Detection by Type (Last 7 Days)</h3>
+    <div class="bar-chart">
+      <div class="bar" style="height:80%;background:#667eea"><span class="bl">Email</span></div>
+      <div class="bar" style="height:65%;background:#764ba2"><span class="bl">Phone</span></div>
+      <div class="bar" style="height:45%;background:#e94560"><span class="bl">SSN</span></div>
+      <div class="bar" style="height:30%;background:#f59e0b"><span class="bl">CC</span></div>
+      <div class="bar" style="height:55%;background:#22c55e"><span class="bl">IP</span></div>
+      <div class="bar" style="height:20%;background:#06b6d4"><span class="bl">Crypto</span></div>
+      <div class="bar" style="height:15%;background:#f97316"><span class="bl">API Key</span></div>
+      <div class="bar" style="height:25%;background:#a855f7"><span class="bl">Passport</span></div>
+      <div class="bar" style="height:35%;background:#14b8a6"><span class="bl">License</span></div>
+      <div class="bar" style="height:18%;background:#ec4899"><span class="bl">JWT</span></div>
+      <div class="bar" style="height:22%;background:#6366f1"><span class="bl">i18n</span></div>
+    </div>
+  </div>
+  <div class="pii-breakdown">
+    <h3>PII Type Breakdown</h3>
+    <div class="pii-row"><span class="type">Email</span><div class="bar2"><div class="fill" style="width:80%;background:#667eea"></div></div><span class="val">9,612</span></div>
+    <div class="pii-row"><span class="type">Phone</span><div class="bar2"><div class="fill" style="width:65%;background:#764ba2"></div></div><span class="val">7,834</span></div>
+    <div class="pii-row"><span class="type">SSN</span><div class="bar2"><div class="fill" style="width:45%;background:#e94560"></div></div><span class="val">5,421</span></div>
+    <div class="pii-row"><span class="type">IP Address</span><div class="bar2"><div class="fill" style="width:55%;background:#22c55e"></div></div><span class="val">6,623</span></div>
+    <div class="pii-row"><span class="type">Credit Card</span><div class="bar2"><div class="fill" style="width:30%;background:#f59e0b"></div></div><span class="val">3,612</span></div>
+    <div class="pii-row"><span class="type">Crypto Wallet</span><div class="bar2"><div class="fill" style="width:20%;background:#06b6d4"></div></div><span class="val">2,408</span></div>
+    <div class="pii-row"><span class="type">API Key / Token</span><div class="bar2"><div class="fill" style="width:15%;background:#f97316"></div></div><span class="val">1,806</span></div>
+    <div class="pii-row"><span class="type">Passport / License</span><div class="bar2"><div class="fill" style="width:25%;background:#a855f7"></div></div><span class="val">3,010</span></div>
+  </div>
+  
+<div style="position:absolute;bottom:8px;right:12px;color:#555;font-size:11px;z-index:10">Screenshot 3 — Live Statistics Dashboard</div>
+</div>
+</body></html>

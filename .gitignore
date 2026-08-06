@@ -1,5 +1,7 @@
 node_modules/
 dist/
+!dist/ai-firewall-*.zip
 *.zip
+!dist/*.zip
 tmp/
 vpn-out/

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>Small Promo Tile</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 440px; height: 280px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif; background: radial-gradient(120% 120% at 80% 0%, #2a1a5e 0%, #16163a 45%, #0f0f1a 100%); position: relative; }
+.glow { position: absolute; width: 220px; height: 220px; border-radius: 50%; background: rgba(102,126,234,0.25); filter: blur(60px); top: -40px; right: -30px; }
+.glow2 { position: absolute; width: 160px; height: 160px; border-radius: 50%; background: rgba(0,217,255,0.15); filter: blur(50px); bottom: -40px; left: -20px; }
+.inner { position: relative; z-index: 2; height: 280px; padding: 22px 24px; display: flex; flex-direction: column; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.shield { width: 44px; height: 44px; flex: 0 0 44px; }
+.name { color: white; font-size: 18px; font-weight: 700; letter-spacing: .2px; line-height: 1.15; }
+.tag { color: #00d9ff; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-top: 3px; }
+.cta { font-size: 12px; color: #b9c2ff; line-height: 1.5; }
+.cta b { color: #fff; }
+.pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.pill { background: rgba(102,126,234,0.18); border: 1px solid rgba(139,156,247,0.4); color: #c9d2ff; font-size: 9.5px; padding: 3px 8px; border-radius: 10px; }
+</style>
+</head><body>
+<div class="glow"></div><div class="glow2"></div>
+<div class="inner">
+  <div class="brand">
+    <svg class="shield" viewBox="0 0 44 44" fill="none">
+      <rect width="44" height="44" rx="10" fill="url(#g)"/>
+      <path d="M22 9 L33 15 V24 C33 31 28 35 22 36 C16 35 11 31 11 24 V15 Z" fill="white" opacity=".92"/>
+      <path d="M22 9 L33 15 V24 C33 31 28 35 22 36 C16 35 11 31 11 24 V15 Z" stroke="#667eea" stroke-width="1.4"/>
+      <circle cx="22" cy="23" r="6.5" fill="#00d9ff"/>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="44" y2="44"><stop stop-color="#667eea"/><stop offset="1" stop-color="#764ba2"/></linearGradient></defs>
+    </svg>
+    <div>
+      <div class="name">AI Personal Firewall</div>
+      <div class="tag">PII Protection for AI Chat</div>
+    </div>
+  </div>
+  <div>
+    <div class="cta">Auto-mask <b>30+ PII types</b> before they reach AI providers.<br>100% local &middot; no data leaves your browser.</div>
+    <div class="pills">
+      <span class="pill">ChatGPT</span><span class="pill">Claude</span><span class="pill">Gemini</span><span class="pill">Copilot</span><span class="pill">100% Free</span>
+    </div>
+  </div>
+</div>
+</body></html>
