@@ -142,25 +142,53 @@ footer a { color: var(--primary-light); text-decoration: none; }
 }
 
 /* ── Pricing ── */
-.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 24px; align-items: stretch; max-width: 900px; margin: 0 auto; }
-.price-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px 28px; display: flex; flex-direction: column; position: relative; }
-.price-card.featured { background: var(--bg2); border: 2px solid var(--primary); transform: translateY(-6px); }
-.price-card h3 { font-size: 18px; margin-bottom: 4px; }
-.price-card .tag { display: inline-block; background: var(--gradient); color: white; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); }
-.price-num { font-size: 40px; font-weight: 800; color: white; margin: 10px 0 4px; }
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 24px; align-items: stretch; max-width: 980px; margin: 0 auto; }
+.price-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px 28px; display: flex; flex-direction: column; position: relative; transition: transform .2s, border-color .2s, box-shadow .2s; }
+.price-card:hover { border-color: var(--primary); transform: translateY(-4px); }
+.price-card.featured { background: var(--bg2); border: 2px solid var(--primary); transform: translateY(-8px); box-shadow: 0 12px 44px rgba(102,126,234,0.28); }
+.price-card.featured:hover { transform: translateY(-10px); }
+.price-card h3 { font-size: 18px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.price-card .tag { display: inline-block; background: var(--gradient); color: white; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.price-card .tag.alt { background: #22c55e; }
+.price-num { font-size: 42px; font-weight: 800; color: white; margin: 12px 0 4px; text-align: center; }
 .price-num .cur { font-size: 22px; color: var(--text2); vertical-align: super; }
 .price-num .per { font-size: 14px; color: var(--text3); font-weight: 400; }
-.price-desc { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+.price-desc { font-size: 13px; color: var(--text3); margin-bottom: 20px; text-align: center; }
 .price-feats { list-style: none; flex: 1; margin: 0 0 24px; }
 .price-feats li { font-size: 14px; color: var(--text2); padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-.price-feats li::before { content: '&#10003;'; color: var(--accent); font-weight: 700; }
-.price-feats li.no::before { content: '&#10005;'; color: var(--text3); }
+.price-feats li::before { content: '\2713'; flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(34,197,94,0.15); color: #22c55e; font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+.price-feats li.no::before { content: '\2715'; background: rgba(136,136,170,0.12); color: var(--text3); }
 .price-feats li:last-child { border-bottom: 0; }
-.price-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; }
-.price-cta.primary { background: var(--gradient); color: white; }
+.price-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all .2s; }
+.price-cta.primary { background: var(--gradient); color: white; box-shadow: 0 4px 18px rgba(102,126,234,0.4); }
+.price-cta.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 26px rgba(102,126,234,0.5); }
 .price-cta.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
-.price-cta:hover { transform: translateY(-2px); }
+.price-cta.secondary:hover { background: var(--border); transform: translateY(-2px); }
 .pricing-note { text-align: center; color: var(--text3); font-size: 13px; margin-top: 24px; }
+.guarantee { max-width: 640px; margin: 28px auto 0; display: flex; align-items: center; justify-content: center; gap: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 24px; font-size: 14px; color: var(--text2); }
+.guarantee .g-ic { font-size: 30px; flex: none; }
+.guarantee b { color: var(--text); }
+/* ── Pricing comparison table ── */
+.price-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 16px; background: var(--card); max-width: 980px; margin: 40px auto 0; }
+.price-table { width: 100%; border-collapse: collapse; min-width: 620px; font-size: 14px; }
+.price-table th, .price-table td { padding: 14px 18px; text-align: center; border-bottom: 1px solid var(--border); }
+.price-table th { font-size: 13px; color: var(--text); font-weight: 700; }
+.price-table td:first-child { text-align: left; color: var(--text2); }
+.price-table th:first-child { text-align: left; }
+.price-table th.pro, .price-table td.pro { background: rgba(102,126,234,0.08); }
+.price-table .tick { color: #22c55e; font-weight: 700; }
+.price-table .x { color: var(--text3); font-weight: 700; }
+.price-table tr:last-child td { border-bottom: 0; }
+.price-table .feat-lbl { font-size: 12px; color: var(--text3); margin-top: 2px; display: block; }
+/* ── Pricing FAQ ── */
+.faq { max-width: 680px; margin: 0 auto; }
+.faq-item { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+.faq-item summary { cursor: pointer; padding: 16px 20px; font-size: 15px; font-weight: 600; color: var(--text); list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: color .2s; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: '+'; font-size: 22px; color: var(--primary-light); font-weight: 400; transition: transform .2s; }
+.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item[open] summary { color: var(--primary-light); }
+.faq-item p { padding: 0 20px 18px; font-size: 14px; color: var(--text2); }
 /* ── Privacy Route (VPN) demo ── */
 .route-demo { max-width: 680px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; }
 .route-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
@@ -179,6 +207,12 @@ footer a { color: var(--primary-light); text-decoration: none; }
 
 @media (max-width:480px) {
   .route-node { min-width: 90px; padding: 10px; font-size: 12px; }
+}
+@media (max-width:768px) {
+  .price-card.featured { transform: translateY(0); }
+  .price-card.featured:hover { transform: translateY(-2px); }
+  .price-table th, .price-table td { padding: 10px 8px; font-size: 13px; }
+  .guarantee { flex-direction: column; text-align: center; }
 }
 </style>
 </head>
@@ -406,18 +440,19 @@ ai-firewall scan ./docs</pre>
 <section id="pricing">
   <div class="container">
     <h2 class="section-title">Pricing</h2>
-    <p class="section-sub">Free forever for individuals. Upgrade to Pro once &mdash; unlock premium features for life. No subscription.</p>
+    <p class="section-sub">Free forever for individuals. Upgrade to Pro once &mdash; unlock premium features for life. No subscription, no account, no tracking.</p>
     <div class="pricing-grid">
       <div class="price-card">
+        <span class="tag alt">FREE FOREVER</span>
         <h3>Free</h3>
         <div class="price-num"><span class="cur">$</span>0<span class="per"> / forever</span></div>
-        <p class="price-desc">Everything you need for personal privacy in AI chat.</p>
+        <p class="price-desc">Everything you need to guard your personal AI chats — on all your devices.</p>
         <ul class="price-feats">
-          <li>30+ PII types detected &amp; masked</li>
+          <li>30+ PII types detected &amp; masked automatically</li>
           <li>Luhn-validated credit card detection</li>
-          <li>Confidence scoring &amp; inline highlighting</li>
-          <li>Browser extensions (Chrome / Edge / Firefox / Safari)</li>
-          <li>CLI, REST API, VS Code extension &amp; PWA</li>
+          <li>Privacy Route (SOCKS5/HTTPS proxy) for 19 AI sites</li>
+          <li>WireGuard VPN toolkit — server + client + kill switch</li>
+          <li>Browser extensions: Chrome / Edge / Firefox / Safari</li>
           <li>100% local &mdash; nothing leaves your device</li>
         </ul>
         <a href="index.html" class="price-cta secondary">Launch Demo</a>
@@ -426,7 +461,7 @@ ai-firewall scan ./docs</pre>
         <span class="tag">POPULAR</span>
         <h3>Pro</h3>
         <div class="price-num"><span class="cur">$</span>29<span class="per"> / one-time</span></div>
-        <p class="price-desc">Unlock advanced protection for power users. One payment, yours forever.</p>
+        <p class="price-desc">Advanced protection for power users. One payment, yours forever.</p>
         <ul class="price-feats">
           <li>Everything in Free</li>
           <li>Advanced &amp; custom detection rules</li>
@@ -451,6 +486,119 @@ ai-firewall scan ./docs</pre>
         </ul>
         <a href="https://buymeacoffee.com/louiesesther-prog" target="_blank" class="price-cta secondary">Contact Us</a>
       </div>
+    </div>
+    <div class="guarantee">
+      <span class="g-ic">&#128737;</span>
+      <span><b>30-day money-back guarantee.</b> If Pro isn't right for you, email us within 30 days for a full refund &mdash; no questions asked.</span>
+    </div>
+
+    <div class="price-table-wrap">
+      <table class="price-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Free</th>
+            <th class="pro">Pro</th>
+            <th>Team</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PII masking (30+ types) <span class="feat-lbl">email, phone, SSN, card, keys, tokens...</span></td>
+            <td class="tick">&#10003;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Credit card detection (Luhn) <span class="feat-lbl">validated card numbers, all major networks</span></td>
+            <td class="tick">&#10003;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Privacy Route proxy mode <span class="feat-lbl">route 19 AI sites through your own SOCKS5/HTTPS proxy</span></td>
+            <td class="tick">&#10003;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>WireGuard VPN toolkit <span class="feat-lbl">server + client + kill switch, free server guide</span></td>
+            <td class="tick">&#10003;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Platforms <span class="feat-lbl">Chrome, Edge, Firefox, Safari, CLI, REST API, VS Code, PWA</span></td>
+            <td class="tick">&#10003;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Custom detection rules <span class="feat-lbl">define your own PII patterns &amp; tokens</span></td>
+            <td class="x">&#10005;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Compliance reports <span class="feat-lbl">GDPR, HIPAA, PCI-DSS exports</span></td>
+            <td class="x">&#10005;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Priority support <span class="feat-lbl">fast responses + feature request voting</span></td>
+            <td class="x">&#10005;</td>
+            <td class="pro tick">&#10003;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Team policies &amp; central rules <span class="feat-lbl">enforce per-org configuration</span></td>
+            <td class="x">&#10005;</td>
+            <td class="pro x">&#10005;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Audit logs &amp; compliance export <span class="feat-lbl">who scrubbed what, when</span></td>
+            <td class="x">&#10005;</td>
+            <td class="pro x">&#10005;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+          <tr>
+            <td>Dedicated onboarding &amp; SLA <span class="feat-lbl">annual support contract</span></td>
+            <td class="x">&#10005;</td>
+            <td class="pro x">&#10005;</td>
+            <td class="tick">&#10003;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="section-title" style="margin-top:56px">Pricing FAQ</h2>
+    <div class="faq">
+      <details class="faq-item">
+        <summary>Is Pro really a one-time payment?</summary>
+        <p>Yes. Pay $29 once and the Pro license key is yours forever. No subscription, no renewal fees, no recurring charges — and the code stays open source &amp; MIT regardless.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How does the 30-day money-back guarantee work?</summary>
+        <p>Within 30 days of purchase, email us via the support page and we'll refund the full amount, no questions asked. Keep the license or don't — your call.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Why is the VPN free if Pro cost $29?</summary>
+        <p>The VPN is fully self-hosted — you run the server on a free tier (Oracle/Google), and WireGuard itself is open source. That's why it's free for everyone. Pro only covers advanced detection tooling, compliance, and support.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Do I need a credit card to try it?</summary>
+        <p>No. The Free tier is complete and unlimited — no account, no credit card, no time limit. You can even contribute via Buy Me a Coffee if you just want to say thanks.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What's the difference between Privacy Route and the VPN?</summary>
+        <p>Privacy Route is the extension mode that sends only your AI-chat traffic through a SOCKS5/HTTPS proxy you control. The WireGuard VPN is full-network — every byte on your device rides an encrypted tunnel. Use proxy for AI chat, VPN for everything, or both.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I use Pro across multiple devices?</summary>
+        <p>Yes — Pro includes a lifetime license key valid on unlimited devices (Chrome, Edge, Firefox, Safari, CLI, PWA). Install once and it's everywhere.</p>
+      </details>
     </div>
     <p class="pricing-note">Open source &amp; MIT licensed. Pro is a voluntary one-time license that funds development &mdash; you can also donate via <a href="https://buymeacoffee.com/louiesesther-prog" target="_blank" style="color:var(--primary-light)">Buy Me a Coffee</a>.</p>
   </div>
