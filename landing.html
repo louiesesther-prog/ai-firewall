@@ -58,6 +58,18 @@ section { padding: 70px 0; }
 .feature h3 { font-size: 16px; margin-bottom: 6px; }
 .feature p { font-size: 14px; color: var(--text2); }
 
+/* ── VPN ── */
+.vpn-steps { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 18px; margin-bottom: 28px; }
+.vpn-step { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+.vpn-step h3 { font-size: 15px; margin-bottom: 8px; }
+.vpn-step p { font-size: 13px; color: var(--text2); }
+.term { background: #0b0b1f; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.term-head { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #14143a; border-bottom: 1px solid var(--border); }
+.term-dot { width: 10px; height: 10px; border-radius: 50%; }
+.term-body { padding: 14px 16px; font-family: 'SF Mono', Consolas, 'Courier New', monospace; font-size: 12.5px; line-height: 1.7; color: #7ee9a8; white-space: pre; overflow-x: auto; }
+.vpn-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 18px; margin-top: 28px; }
+.vpn-note { margin-top: 24px; font-size: 13px; color: var(--text2); text-align: center; }
+
 /* ── PII Types ── */
 .pii-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 10px; }
 .pii-tag { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text2); text-align: center; }
@@ -160,6 +172,7 @@ footer a { color: var(--primary-light); text-decoration: none; }
       <a href="#how">How It Works</a>
       <a href="#pii">PII Types</a>
       <a href="#route">Privacy Route</a>
+      <a href="#vpn">VPN</a>
       <a href="#pricing">Pricing</a>
       <a href="index.html" class="nav-cta">Try Demo</a>
     </div>
@@ -435,6 +448,72 @@ ai-firewall scan ./docs</pre>
       <div class="route-status" id="routeStatus">Traffic currently goes direct to AI providers.</div>
       <div class="route-note">Demo simulation. The browser-extension <strong>Privacy Route</strong> routes all 19 AI sites through your own SOCKS5/HTTPS proxy. For full network protection, pair it with the bundled <a href="vpn/README.md" style="color:var(--primary-light)">native WireGuard VPN</a> (server + client + kill switch) &mdash; <code>vpn/socks5-bridge.mjs</code> bridges the two.</div>
     </div>
+  </div>
+</section>
+
+<section id="vpn" style="background:var(--bg2)">
+  <div class="container">
+    <h2 class="section-title">Built-in WireGuard VPN</h2>
+    <p class="section-sub">A real, native VPN for full network privacy &mdash; built on the audited WireGuard protocol. You host the server, so no third-party provider ever sees your traffic.</p>
+    <div class="vpn-steps">
+      <div class="vpn-step">
+        <h3><span>1.</span> Rent a VPS</h3>
+        <p>Any cheap Ubuntu/Debian VPS (~$4/mo). The server script installs WireGuard and configures NAT in one command.</p>
+      </div>
+      <div class="vpn-step">
+        <h3><span>2.</span> Generate keys</h3>
+        <p>One command creates real X25519 keypairs plus server and per-client configs with pre-shared keys.</p>
+      </div>
+      <div class="vpn-step">
+        <h3><span>3.</span> Connect client</h3>
+        <p>Windows installer pulls the official WireGuard tools, imports your config, and connects. Kill switch blocks leaks if the tunnel drops.</p>
+      </div>
+      <div class="vpn-step">
+        <h3><span>4.</span> Use it with the extension</h3>
+        <p>The SOCKS5 bridge &mdash; then hit <strong>Connect VPN</strong> in the extension popup to route all AI traffic through the tunnel.</p>
+      </div>
+    </div>
+    <div class="term">
+      <div class="term-head">
+        <span class="term-dot" style="background:#ff5f57"></span>
+        <span class="term-dot" style="background:#febc2e"></span>
+        <span class="term-dot" style="background:#28c840"></span>
+        <span style="margin-left:8px;font-size:11px;color:var(--text3)">terminal &mdash; quick start</span>
+      </div>
+      <div class="term-body"># 1. On your VPS (once):
+bash setup.sh
+
+# 2. On your machine &mdash; generate keys + configs:
+node vpn/generate.mjs
+
+# 3. On Windows &mdash; native client + kill switch:
+powershell -File vpn/client/install.ps1
+powershell -File vpn/client/kill-switch.ps1 -On
+
+# 4. Start the SOCKS5 bridge for the extension:
+node vpn/socks5-bridge.mjs
+
+# 5. In the extension popup, hit "Connect VPN"</div>
+    </div>
+    <div class="vpn-grid">
+      <div class="vpn-step">
+        <h3>&#128737; Real WireGuard</h3>
+        <p>Built on the audited WireGuard protocol &amp; standard crypto (X25519 + pre-shared keys) &mdash; not a custom VPN. The <code>vpn/</code> folder in this project has everything.</p>
+      </div>
+      <div class="vpn-step">
+        <h3>&#128274; Kill Switch</h3>
+        <p>Blocks all non-tunnel traffic at the firewall if the VPN drops &mdash; no leaks to your ISP when the tunnel is down.</p>
+      </div>
+      <div class="vpn-step">
+        <h3>&#128737; You host the server</h3>
+        <p>No third-party VPN provider sees your traffic. You rent a cheap VPS, run the script, and all AI traffic rides your private encrypted tunnel.</p>
+      </div>
+      <div class="vpn-step">
+        <h3>&#128279; Full docs</h3>
+        <p>Architecture, security notes, and step-by-step quick start in <a href="vpn/README.md" style="color:var(--primary-light)">vpn/README.md</a>.</p>
+      </div>
+    </div>
+    <p class="vpn-note">Works with the extension's <a href="#route" style="color:var(--primary-light)">Privacy Route</a> &mdash; the SOCKS5 bridge (<code>vpn/socks5-bridge.mjs</code>) connects them.</p>
   </div>
 </section>
 
