@@ -86,6 +86,12 @@ section { padding: 70px 0; }
 
 /* ── Docs ── */
 .docs-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap: 18px; max-width: 960px; margin: 0 auto; }
+.docs-locked { max-width: 560px; margin: 0 auto; text-align: center; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 44px 32px; }
+.docs-lock-ic { font-size: 46px; margin-bottom: 14px; }
+.docs-locked h3 { font-size: 22px; margin-bottom: 10px; }
+.docs-locked p { font-size: 14px; color: var(--text2); margin-bottom: 22px; }
+.docs-lock-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+.docs-lock-note { font-size: 12.5px !important; color: var(--text3) !important; margin-bottom: 0 !important; }
 .doc-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 8px; transition: all .2s; }
 .doc-card:hover { border-color: var(--primary); transform: translateY(-2px); }
 .doc-card .doc-tag { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
@@ -623,7 +629,7 @@ ai-firewall scan ./docs</pre>
         <button class="route-btn" id="routeBtn">&#128274; Enable Privacy Route</button>
       </div>
       <div class="route-status" id="routeStatus">Traffic currently goes direct to AI providers.</div>
-      <div class="route-note">Demo simulation. The browser-extension <strong>Privacy Route</strong> routes all 19 AI sites through your own SOCKS5/HTTPS proxy. For full network protection, pair it with the bundled <a href="vpn/README.md" style="color:var(--primary-light)">native WireGuard VPN</a> (server + client + kill switch) &mdash; <code>vpn/socks5-bridge.mjs</code> bridges the two.</div>
+      <div class="route-note">Demo simulation. The browser-extension <strong>Privacy Route</strong> routes all 19 AI sites through your own SOCKS5/HTTPS proxy. For full network protection, pair it with the bundled <a href="pro/docs.html?doc=readme" style="color:var(--primary-light)">native WireGuard VPN</a> (server + client + kill switch) &mdash; <code>vpn/socks5-bridge.mjs</code> bridges the two.</div>
     </div>
   </div>
 </section>
@@ -635,7 +641,7 @@ ai-firewall scan ./docs</pre>
     <div class="vpn-steps">
       <div class="vpn-step">
         <h3><span>1.</span> Get a free server</h3>
-        <p>$0 forever — Oracle Cloud &amp; Google Cloud free tiers run WireGuard with room to spare. See <a href="vpn/FREE_VPS.md" style="color:var(--primary-light)">FREE_VPS.md</a>. (Or any Ubuntu VPS ~$4/mo.)</p>
+        <p>$0 forever — Oracle Cloud &amp; Google Cloud free tiers run WireGuard with room to spare. See <a href="pro/docs.html?doc=freevps" style="color:var(--primary-light)">FREE_VPS.md</a>. (Or any Ubuntu VPS ~$4/mo.)</p>
       </div>
       <div class="vpn-step">
         <h3><span>2.</span> Generate keys</h3>
@@ -688,7 +694,7 @@ node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
       </div>
       <div class="vpn-step">
         <h3>&#128279; Full docs</h3>
-        <p>Architecture, security notes, and step-by-step quick start in <a href="vpn/README.md" style="color:var(--primary-light)">vpn/README.md</a>.</p>
+        <p>Architecture, security notes, and step-by-step quick start in <a href="pro/docs.html?doc=readme" style="color:var(--primary-light)">vpn/README.md</a>.</p>
       </div>
     </div>
     <p class="vpn-note">Works with the extension's <a href="#route" style="color:var(--primary-light)">Privacy Route</a> &mdash; the SOCKS5 bridge (<code>vpn/socks5-bridge.mjs</code>) connects them.</p>
@@ -756,27 +762,39 @@ node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
 <section id="docs">
   <div class="container">
     <h2 class="section-title">Documentation</h2>
-    <p class="section-sub">Everything you need to set up and run the firewall, CLI, and VPN &mdash; free server step included.</p>
-    <div class="docs-grid">
-      <a class="doc-card" href="vpn/README.md">
+    <p class="section-sub">Full setup and operations guides for the firewall, CLI, and VPN &mdash; <b>available to Pro members</b> after signing in with your license key.</p>
+
+    <div id="docsLocked" class="docs-locked">
+      <div class="docs-lock-ic">&#128274;</div>
+      <h3>Pro Members Only</h3>
+      <p>The complete guides (WireGuard VPN setup, free-server walkthrough, installer source, and privacy details) are for Pro members.</p>
+      <div class="docs-lock-btns">
+        <a class="btn btn-primary" href="pro/login.html?next=docs.html">&#8594; Unlock Docs</a>
+        <a class="btn btn-secondary" href="index.html">Try the Demo</a>
+      </div>
+      <p class="docs-lock-note">Purchased Pro? Your license key was emailed to you after checkout.</p>
+    </div>
+
+    <div class="docs-grid" id="docsGrid" style="display:none">
+      <a class="doc-card" href="pro/docs.html?doc=readme">
         <span class="doc-tag">VPN &middot; Full guide</span>
         <h3>WireGuard VPN Setup</h3>
         <p>Architecture diagram, one-command installer, kill switch, and security notes. Covers the whole native tunnel.</p>
         <span class="doc-link">Read the guide &rarr;</span>
       </a>
-      <a class="doc-card" href="vpn/FREE_VPS.md">
+      <a class="doc-card" href="pro/docs.html?doc=freevps">
         <span class="doc-tag">VPN &middot; Free server</span>
         <h3>Get a Free VPN Server</h3>
         <p>Step-by-step for a permanently $0 server on Oracle Cloud Always Free and Google Cloud e2-micro, plus opening UDP 51820.</p>
         <span class="doc-link">Read the guide &rarr;</span>
       </a>
-      <a class="doc-card" href="vpn/setup.mjs">
+      <a class="doc-card" href="pro/docs.html?doc=setup">
         <span class="doc-tag">VPN &middot; Installer</span>
         <h3>Setup Script (source)</h3>
         <p>View the all-in-one <code>vpn/setup.mjs</code> installer that generates keys, deploys to your server over SSH, and starts the tunnel.</p>
         <span class="doc-link">View source &rarr;</span>
       </a>
-      <a class="doc-card" href="extension/PRIVACY.md">
+      <a class="doc-card" href="pro/docs.html?doc=privacy">
         <span class="doc-tag">Privacy</span>
         <h3>Privacy Policy</h3>
         <p>How masking, Privacy Route tunnel mode, and the VPN handle your data &mdash; what stays local, what you control.</p>
@@ -801,6 +819,7 @@ node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
   </div>
 </footer>
 
+<script src="pro-lib.js"></script>
 <script>
 (function() {
   var btn = document.getElementById('routeBtn');
@@ -825,6 +844,20 @@ node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
       ? '19 AI sites now routed through your proxy. All other traffic stays direct.'
       : 'Traffic currently goes direct to AI providers.';
   });
+
+  // Pro docs gate: show guide cards when a valid session exists, otherwise locked.
+  var gate = document.getElementById('docsLocked');
+  var grid = document.getElementById('docsGrid');
+  if (gate && grid) {
+    var pro = window.AIFW && AIFW.pro;
+    if (pro && pro.session()) {
+      gate.style.display = 'none';
+      grid.style.display = 'grid';
+    } else {
+      gate.style.display = 'block';
+      grid.style.display = 'none';
+    }
+  }
 })();
 </script>
 

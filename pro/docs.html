@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pro Docs — AI Personal Firewall</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root { --bg:#0a0a1a; --bg2:#12122a; --bg3:#1a1a3e; --card:#16163a; --border:#2a2a5a; --primary:#667eea; --primary-light:#8b9cf7; --accent:#00d9ff; --text:#e8e8f0; --text2:#8888aa; --text3:#555577; --gradient:linear-gradient(135deg,#667eea,#764ba2); }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.7; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(10,10,26,0.9); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); }
+.topbar-in { max-width:880px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.topbar a { color:var(--primary-light); text-decoration:none; font-size:13px; font-weight:600; }
+.topbar .who { font-size:12.5px; color:var(--text2); }
+.badge { display:inline-block; background:var(--gradient); color:white; font-size:10px; font-weight:700; padding:2px 8px; border-radius:8px; letter-spacing:.06em; vertical-align:middle; }
+.badge.o { background:#22c55e; }
+.container { max-width:880px; margin:0 auto; padding:28px 24px 80px; }
+h1.doc { font-size:26px; margin-bottom:6px; }
+.doc-meta { color:var(--text3); font-size:13px; margin-bottom:24px; }
+/* locked view */
+.locked { max-width:520px; margin:60px auto; text-align:center; }
+.locked .ic { font-size:56px; margin-bottom:16px; }
+.locked h2 { font-size:24px; margin-bottom:10px; }
+.locked p { color:var(--text2); font-size:15px; margin:0 auto 26px; max-width:440px; }
+.btn { display:inline-block; background:var(--gradient); color:white; padding:13px 30px; border-radius:10px; font-size:15px; font-weight:700; text-decoration:none; }
+.btn.ghost { background:var(--bg3); border:1px solid var(--border); color:var(--text); margin-left:10px; }
+.locked .tiny { margin-top:22px; font-size:12.5px; color:var(--text3); }
+/* markdown */
+.md h1 { font-size:26px; margin:30px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+.md h2 { font-size:21px; margin:26px 0 12px; }
+.md h3 { font-size:17px; margin:22px 0 8px; }
+.md h4 { font-size:15px; margin:18px 0 8px; }
+.md p { margin:12px 0; }
+.md ul, .md ol { margin:12px 0 12px 24px; }
+.md li { margin:6px 0; }
+.md a { color:var(--primary-light); }
+.md code { background:var(--bg3); padding:2px 6px; border-radius:6px; font-size:.9em; font-family:'SF Mono',Consolas,monospace; }
+.md pre { background:#0b0b1f; border:1px solid var(--border); border-radius:10px; padding:14px 16px; overflow-x:auto; margin:14px 0; }
+.md pre code { background:none; padding:0; }
+.md table { border-collapse:collapse; margin:16px 0; width:100%; }
+.md th, .md td { border:1px solid var(--border); padding:9px 12px; font-size:14px; text-align:left; }
+.md th { background:var(--bg2); }
+.md hr { border:0; border-top:1px solid var(--border); margin:26px 0; }
+.md a { text-decoration:underline; }
+.err-box { padding:16px 18px; border:1px solid var(--err,#f87171); background:rgba(248,113,113,.08); border-radius:12px; color:var(--err,#f87171); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner" style="max-width:880px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <a href="landing.html">&#8592; AI Personal Firewall</a>
+    <span class="who" id="who"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="locked" class="locked" style="display:none">
+    <div class="ic">&#128274;</div>
+    <h2>Pro Documentation</h2>
+    <p>The full setup and operations guides are for Pro members. Sign in with your purchase email and license key to read them.</p>
+    <a class="btn" id="unlockBtn" href="login.html?next=docs.html">Unlock Docs</a>
+    <a class="btn ghost" href="landing.html?cb=">Back to site</a>
+    <div class="tiny">No key yet? It's emailed after your Pro purchase. Keep it private.</div>
+  </div>
+
+  <div id="reader" style="display:none">
+    <h1 class="doc-title" id="title"></h1>
+    <div class="doc-meta" id="meta"></div>
+    <div class="md" id="body"></div>
+  </div>
+</div>
+
+<script src="../pro-lib.js"></script>
+<script src="md.js"></script>
+<script>
+(function () {
+  var DOCS = {
+    readme:       { file: '../vpn/README.md',    title: 'WireGuard VPN Setup',            tag: 'VPN &middot; Full guide' },
+    freevps:      { file: '../vpn/FREE_VPS.md',  title: 'Get a Free VPN Server',          tag: 'VPN &middot; Free server' },
+    setup:        { file: '../vpn/setup.mjs',    title: 'Setup Script (source)',          tag: 'VPN &middot; Installer' },
+    privacy:      { file: '../extension/PRIVACY.md', title: 'Privacy Policy',             tag: 'Privacy' }
+  };
+
+  var params = new URLSearchParams(location.search);
+  var docKey = params.get('doc') || 'readme';
+  var entry = DOCS[docKey] || DOCS.readme;
+
+  var who = document.getElementById('who');
+  var locked = document.getElementById('locked');
+  var reader = document.getElementById('reader');
+
+  var session = AIFW.pro.session();
+  if (!session) {
+    // Preserve the requested doc through the login round-trip.
+    document.getElementById('unlockBtn').href = 'login.html?next=docs.html' + (docKey !== 'readme' ? '?doc=' + docKey : '');
+    locked.style.display = 'block';
+    return;
+  }
+
+  // authenticated
+  who.textContent = session.email || '';
+  locked.style.display = 'none';
+  reader.style.display = 'block';
+  document.getElementById('title').textContent = entry.title;
+  document.getElementById('meta').innerHTML = '<span class="badge o">UNLOCKED</span> ' + entry.tag + ' &mdash; Pro access';
+
+  fetch(entry.file)
+    .then(function (res) {
+      if (!res.ok) throw new Error('Could not load doc (' + res.status + ')');
+      return res.text();
+    })
+    .then(function (text) {
+      document.getElementById('body').innerHTML = renderMarkdown(text);
+    })
+    .catch(function (e) {
+      reader.insertAdjacentHTML('beforeend', '<div class="err-box">Failed to load document: ' + e.message + '</div>');
+    });
+})();
+</script>
+</body>
+</html>
