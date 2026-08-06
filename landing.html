@@ -506,7 +506,10 @@ ai-firewall scan ./docs</pre>
         <span class="term-dot" style="background:#28c840"></span>
         <span style="margin-left:8px;font-size:11px;color:var(--text3)">terminal &mdash; quick start</span>
       </div>
-      <div class="term-body"># EASIEST — one command from your machine (auto deploys + connects):
+      <div class="term-body"># WINDOWS — one click, every time (after setup):
+#   double-click VPN-Connect.bat   (or VPN-Enable-AutoStart.bat for login auto-connect)
+
+# Setup once (one command, auto deploys + connects):
 node vpn/setup.mjs --host YOUR_VPS_IP --user root
 
 # No server yet? Get a FREE one:  vpn/FREE_VPS.md
@@ -517,7 +520,7 @@ bash vpn/server/setup.sh          # on your VPS (once)
 node vpn/generate.mjs --endpoint YOUR_VPS_IP   # local keys + configs
 node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
 
-# 5. In the extension popup, hit "Connect VPN"</div>
+# In the extension popup, hit "Connect VPN"</div>
     </div>
     <div class="vpn-grid">
       <div class="vpn-step">

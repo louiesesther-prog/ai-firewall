@@ -110,7 +110,14 @@ The script installs WireGuard, enables IP forwarding + NAT masquerade, and start
 
 ### 3. Connect the client
 
-**Windows (native, official WireGuard / wintun):**
+**One-click on Windows:** double-click **`VPN-Connect.bat`** at the repo root (or run
+`powershell -File vpn/Connect-VPN.ps1`). It brings up the tunnel, starts the SOCKS5
+bridge, verifies both, and then you hit **Connect VPN** in the extension popup.
+
+- **`VPN-Enable-AutoStart.bat`** — connect the tunnel + bridge automatically at every login
+- **`VPN-Disconnect.bat`** — tear down tunnel + bridge
+
+**Manual (native, official WireGuard / wintun):**
 ```powershell
 # Run as Administrator
 powershell -ExecutionPolicy Bypass -File vpn/client/install.ps1 -Config client1.conf
