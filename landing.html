@@ -159,6 +159,8 @@ footer a { color: var(--primary-light); text-decoration: none; }
 .price-feats li::before { content: '\2713'; flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(34,197,94,0.15); color: #22c55e; font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; }
 .price-feats li.no::before { content: '\2715'; background: rgba(136,136,170,0.12); color: var(--text3); }
 .price-feats li:last-child { border-bottom: 0; }
+.price-feats li.vpn-highlight { color: var(--text); font-weight: 600; }
+.price-feats li.vpn-highlight::before { content: '\2713'; background: rgba(102,126,234,0.18); color: var(--primary-light); }
 .price-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all .2s; }
 .price-cta.primary { background: var(--gradient); color: white; box-shadow: 0 4px 18px rgba(102,126,234,0.4); }
 .price-cta.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 26px rgba(102,126,234,0.5); }
@@ -462,9 +464,10 @@ ai-firewall scan ./docs</pre>
         <h3>Pro</h3>
         <div class="price-num"><span class="cur">$</span>29<span class="per"> / one-time</span></div>
         <p class="price-desc">Advanced protection for power users. One payment, yours forever.</p>
-        <ul class="price-feats">
-          <li>Everything in Free</li>
-          <li>Advanced &amp; custom detection rules</li>
+<ul class="price-feats">
+  <li>Everything in Free</li>
+  <li class="vpn-highlight">&#128737; Pro VPN suite: 1-click launcher, login auto-start &amp; kill switch</li>
+  <li>Advanced &amp; custom detection rules</li>
           <li>Compliance reports (GDPR, HIPAA, PCI-DSS)</li>
           <li>Priority support &amp; feature requests</li>
           <li>Automatic updates &amp; new PII types</li>
@@ -585,7 +588,7 @@ ai-firewall scan ./docs</pre>
       </details>
       <details class="faq-item">
         <summary>Why is the VPN free if Pro cost $29?</summary>
-        <p>The VPN is fully self-hosted — you run the server on a free tier (Oracle/Google), and WireGuard itself is open source. That's why it's free for everyone. Pro only covers advanced detection tooling, compliance, and support.</p>
+        <p>The underlying VPN is fully self-hosted — you run the server on a free tier (Oracle/Google), and WireGuard itself is open source. That's why the toolkit is free for everyone. Pro adds the convenience layer on top: a 1-click launcher, login auto-start, and baked-in kill switch so the tunnel is effortless and leak-proof on every boot.</p>
       </details>
       <details class="faq-item">
         <summary>Do I need a credit card to try it?</summary>
