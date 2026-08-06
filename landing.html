@@ -480,18 +480,13 @@ ai-firewall scan ./docs</pre>
         <span class="term-dot" style="background:#28c840"></span>
         <span style="margin-left:8px;font-size:11px;color:var(--text3)">terminal &mdash; quick start</span>
       </div>
-      <div class="term-body"># 1. On your VPS (once):
-bash setup.sh
+      <div class="term-body"># EASIEST — one command from your machine (auto deploys + connects):
+node vpn/setup.mjs --host YOUR_VPS_IP --user root
 
-# 2. On your machine &mdash; generate keys + configs:
-node vpn/generate.mjs
-
-# 3. On Windows &mdash; native client + kill switch:
-powershell -File vpn/client/install.ps1
-powershell -File vpn/client/kill-switch.ps1 -On
-
-# 4. Start the SOCKS5 bridge for the extension:
-node vpn/socks5-bridge.mjs
+# ...or manual, step by step vpn/ folder commands:
+bash vpn/server/setup.sh          # on your VPS (once)
+node vpn/generate.mjs --endpoint YOUR_VPS_IP   # local keys + configs
+node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
 
 # 5. In the extension popup, hit "Connect VPN"</div>
     </div>

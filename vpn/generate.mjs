@@ -26,6 +26,7 @@ Options:
   --subnet <cidr>      VPN subnet, default 10.77.0.0/24
   --out <dir>          Output directory, default ./vpn-out
   --no-preshared       Skip pre-shared keys (not recommended)
+  --bundle-server      Also write a self-contained server-deploy.sh (no repo needed on VPS)
   --help               Show this help
 
 Then:
@@ -50,7 +51,7 @@ function x25519Keypair() {
 
 function parseArgs(argv) {
   const opts = {
-    endpoint: null, port: 51820, clients: 3, subnet: '10.77.0.0/24', out: OUT_DIR, preshared: true
+    endpoint: null, port: 51820, clients: 3, subnet: '10.77.0.0/24', out: OUT_DIR, preshared: true, bundleServer: false
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -61,6 +62,7 @@ function parseArgs(argv) {
     if (a === '--subnet') opts.subnet = argv[++i];
     if (a === '--out') opts.out = argv[++i];
     if (a === '--no-preshared') opts.preshared = false;
+    if (a === '--bundle-server') opts.bundleServer = true;
   }
   return opts;
 }
@@ -155,6 +157,58 @@ ${summary.join('\n')}
 # private keys and full-tunnel (0.0.0.0/0) routes.
 `;
   writeFileSync(join(opts.out, 'README.txt'), meta);
+
+  // ── optional self-contained server deploy script (no repo needed on VPS) ──
+  if (opts.bundleServer) {
+    const defaultIf = '$(ip route show default | awk \'{print $5}\' | head -n1)';
+    const deploy = `#!/usr/bin/env bash
+# AI Firewall VPN — self-contained server deploy (copied here via --bundle-server)
+# Run on your Ubuntu/Debian VPS:
+#   sudo bash /tmp/server-deploy.sh
+# Internet-facing wireguard config is embedded below by vpn/generate.mjs.
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+echo "==> Installing WireGuard + tools"
+apt-get update -y
+apt-get install -y wireguard wireguard-tools iptables
+
+echo "==> Enabling IPv4 forwarding"
+{ grep -q net.ipv4.ip_forward /etc/sysctl.conf && sed -i 's/^#*net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf; } || echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+sysctl -w net.ipv4.ip_forward=1
+
+echo "==> Installing server config"
+cat > /etc/wireguard/wg0.conf <<'WGCONF'
+${serverConf.trim()}
+WGCONF
+chmod 600 /etc/wireguard/wg0.conf
+
+echo "==> Adding NAT masquerade on default interface"
+DEFAULT_IF=\$(ip route show default | awk '{print \$5}' | head -n1)
+DEFAULT_IF="\${DEFAULT_IF:-eth0}"
+sed -i "/^\[Interface\]/a \\
+PostUp = iptables -t nat -A POSTROUTING -o \${DEFAULT_IF} -j MASQUERADE; iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT \\
+PostDown = iptables -t nat -D POSTROUTING -o \${DEFAULT_IF} -j MASQUERADE; iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT" /etc/wireguard/wg0.conf
+
+echo "==> Starting WireGuard"
+systemctl enable wg-quick@wg0 2>/dev/null || true
+wg-quick down wg0 2>/dev/null || true
+wg-quick up wg0
+
+echo ""
+echo "==> Status"
+wg show
+echo ""
+echo "DONE. VPN server live. Open UDP ${opts.port} for clients:"
+echo "  ufw allow ${opts.port}/udp"
+`;
+    const deployPath = join(opts.out, 'server-deploy.sh');
+    writeFileSync(deployPath, deploy);
+    console.log('  Bundled self-contained: ' + deployPath);
+    console.log('  Copy-paste one-liner (from this machine, secrets never uploaded):');
+    console.log('    scp "' + deployPath + '" root@' + opts.endpoint + ':/tmp/server-deploy.sh && ssh root@' + opts.endpoint + ' "sudo bash /tmp/server-deploy.sh"');
+    console.log('');
+  }
 
   console.log('');
   console.log('  AI Firewall VPN — configs written to: ' + opts.out);

@@ -56,12 +56,41 @@ We generate the keys and configs, install the native client/server, and manage t
 
 ## Quick start
 
+### 0. Fastest path — one command (recommended)
+
+With SSH access to your VPS, everything is automated from this machine:
+
+```bash
+node vpn/setup.mjs --host YOUR_VPS_IP --user root
+```
+
+That single command: generates keys/configs → deploys the server to your VPS over
+SSH (scp + ssh) → imports a local client config → starts the SOCKS5 bridge → tells
+you to hit **Connect VPN** in the extension popup.
+
+> `setup.mjs` only needs your SSH password once. Your secret keys stay local — the
+> VPS receives the server config over scp, never through a public URL.
+
+Still renting a VPS is unavoidable (that's the tunnel's other endpoint — read the
+[prerequisite](#20-set-up-the-server-the-one-component-you-rent) below). This wizard
+just removes all the manual scp / run / import steps around it.
+
 ### 1. Generate keys + configs (on any machine with Node)
 
 ```bash
-node vpn/generate.mjs --endpoint YOUR_VPS_PUBLIC_IP --clients 3
+node vpn/generate.mjs --endpoint YOUR_VPS_PUBLIC_IP --clients 3 --bundle-server
 # writes vpn-out/server.conf + client1.conf ... clientN.conf
+# plus vpn-out/server-deploy.sh (self-contained server installer)
 ```
+
+Then deploy the server with one copy-paste line (from this machine — secrets never leave over a public URL):
+
+```bash
+scp vpn-out/server-deploy.sh root@YOUR_VPS_IP:/tmp/ && ssh root@YOUR_VPS_IP "sudo bash /tmp/server-deploy.sh"
+```
+
+This is the same result as step 2 below, but `server-deploy.sh` bundles everything
+(no repo needed on the VPS).
 
 ### 2. Set up the server (the one component you rent)
 
