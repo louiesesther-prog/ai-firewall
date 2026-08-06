@@ -113,6 +113,30 @@ try {
   check('SOCKS4 rejected', true);
 }
 
+// Test 4: HTTP status probe (extension "Connect VPN" button polls this)
+try {
+  const sock = connect(SOCKS_PORT, '127.0.0.1');
+  await new Promise((r) => { sock.on('connect', r); });
+  const bodyP = new Promise((resolve) => {
+    let buf = '';
+    sock.on('data', (d) => {
+      buf += d.toString();
+      if (buf.includes('\r\n\r\n')) {
+        resolve(buf);
+        sock.destroy();
+      }
+    });
+  });
+  sock.write('GET / HTTP/1.1\r\nHost: localhost\r\n\r\n');
+  const raw = await bodyP;
+  const json = raw.slice(raw.indexOf('{'));
+  const status = JSON.parse(json);
+  check('HTTP status probe returns bridge JSON', status.ok === true && status.service === 'ai-firewall-vpn-bridge');
+} catch (e) {
+  check('HTTP status probe returns bridge JSON', false);
+  console.log('     error: ' + e.message);
+}
+
 bridge.kill();
 echo.close();
 console.log('');

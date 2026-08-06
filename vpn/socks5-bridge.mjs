@@ -55,9 +55,39 @@ function detectWgAdapter() {
 
 function handleSocks(conn) {
   let stage = 0;
+  let tunneled = false;
   conn.on('error', () => { try { conn.destroy(); } catch (e) {} });
 
-  conn.on('data', (data) => {
+  const onData = (data) => {
+    if (tunneled) return;
+    // HTTP status probe (extension "Connect VPN" button polls this).
+    // Only valid BEFORE the SOCKS handshake completes — afterwards all
+    // bytes on this connection are tunnel payload, never protocol.
+    if (stage === 0 && data[0] !== 5 && data.length >= 4) {
+      const wg = detectWgAdapter();
+      const body = JSON.stringify({
+        ok: true,
+        service: 'ai-firewall-vpn-bridge',
+        tunnel: wg ? 'up' : 'down',
+        tunnelAdapter: wg ? wg.name : null,
+        listen: LISTEN_HOST + ':' + LISTEN_PORT,
+        sock5: true,
+        note: wg
+          ? 'WireGuard tunnel active - proxy traffic rides the VPN'
+          : 'WireGuard adapter not detected - make sure the tunnel is up (wg-quick up <name>)'
+      });
+      const reply = [
+        'HTTP/1.1 200 OK',
+        'Content-Type: application/json',
+        'Access-Control-Allow-Origin: *',
+        'Content-Length: ' + Buffer.byteLength(body),
+        'Connection: close',
+        '',
+        body
+      ].join('\r\n');
+      conn.end(reply);
+      return;
+    }
     try {
       if (stage === 0) {
         // Method negotiation (RFC 1928): expect SOCKS5, reply no-auth
@@ -89,6 +119,8 @@ function handleSocks(conn) {
         upstream.on('connect', () => {
           if (bound) return; bound = true;
           conn.write(Buffer.from([5, 0, 0, 1, 0, 0, 0, 0, 0, 0]));
+          tunneled = true;
+          conn.removeListener('data', onData);
           upstream.pipe(conn);
           conn.pipe(upstream);
         });
@@ -99,7 +131,8 @@ function handleSocks(conn) {
     } catch (e) {
       try { conn.end(); } catch (e2) {}
     }
-  });
+  };
+  conn.on('data', onData);
 }
 
 const server = createServer(handleSocks);

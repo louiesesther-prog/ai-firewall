@@ -43,9 +43,16 @@
     .vpn-input:focus { border-color: #00d9ff; }
     .vpn-select { background: #16213e; border: 1px solid #2a2a5a; color: #fff; border-radius: 6px; padding: 7px 6px; font-size: 12px; outline: none; }
     .vpn-hint { font-size: 10px; color: #888; line-height: 1.5; margin-top: 6px; }
-    .vpn-status { font-size: 11px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: #16213e; color: #ccc; }
-    .vpn-status.ok { color: #4ade80; background: rgba(34,197,94,0.12); }
-    .vpn-status.err { color: #f87171; background: rgba(248,113,113,0.12); }
+.vpn-status { font-size: 11px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: #16213e; color: #ccc; }
+.vpn-status.ok { color: #4ade80; background: rgba(34,197,94,0.12); }
+.vpn-status.err { color: #f87171; background: rgba(248,113,113,0.12); }
+.vpn-connect {
+  display: block; width: 100%; margin-top: 10px; padding: 9px 0;
+  background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+  border: none; border-radius: 8px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.vpn-connect:hover { filter: brightness(1.1); }
     .toggle { position: relative; width: 48px; height: 24px; }
     .toggle.small { width: 40px; height: 20px; }
     .toggle input { opacity: 0; width: 0; height: 0; }
@@ -161,8 +168,9 @@
           <span class="slider"></span>
         </label>
       </label>
-      <div class="vpn-status" id="vpnStatus">Reroutes AI chat traffic through your own proxy. Traffic for other sites stays direct.</div>
-      <div class="vpn-hint">Point this at your own proxy/VPN endpoint (a SOCKS5 tunnel, a personal VPS, or a commercial VPN gateway). We never provide or operate servers &mdash; we just route your AI traffic through yours, encrypted by the tunnel protocol.</div>
+<button class="vpn-connect" id="vpnConnectBtn">🔌 Connect VPN</button>
+<div class="vpn-status" id="vpnStatus">Reroutes AI chat traffic through your own proxy. Traffic for other sites stays direct.</div>
+<div class="vpn-hint">Runs with your local WireGuard tunnel (vpn/ in this repo): start <code>node vpn/socks5-bridge.mjs</code>, then hit <strong>Connect VPN</strong> &mdash; or point Privacy Route at any SOCKS5/HTTPS endpoint of yours. We never operate servers.</div>
     </div>
   </div>
   

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var vpnProto = document.getElementById('vpnProto');
   var vpnLeakToggle = document.getElementById('vpnLeakToggle');
   var vpnStatus = document.getElementById('vpnStatus');
+  var vpnConnectBtn = document.getElementById('vpnConnectBtn');
 
   function sendVpn(msg) {
     return new Promise(function(resolve) {
@@ -126,6 +127,41 @@ document.addEventListener('DOMContentLoaded', function() {
     piiCount.textContent = '0';
     piiList.innerHTML = '<div class="pii-item"><span class="pii-type">Statistics cleared</span></div>';
   });
-  
+
+  // ── Connect VPN: probe local bridge, then enable Privacy Route ──
+  function probeBridge(host, port) {
+    return fetch('http://' + host + ':' + port + '/').then(function(r) {
+      return r.json();
+    }).catch(function() { return null; });
+  }
+
+  vpnConnectBtn.addEventListener('click', function() {
+    var host = vpnHost.value.trim() || '127.0.0.1';
+    var port = parseInt(vpnPort.value, 10) || 1080;
+    vpnConnectBtn.disabled = true;
+    vpnStatus.className = 'vpn-status';
+    vpnStatus.textContent = 'Probing ' + host + ':' + port + ' ...';
+
+    probeBridge(host, port).then(function(status) {
+      vpnConnectBtn.disabled = false;
+      if (!status) {
+        vpnStatus.className = 'vpn-status err';
+        vpnStatus.textContent = 'No bridge at ' + host + ':' + port + '. Start it: node vpn/socks5-bridge.mjs (with your WireGuard tunnel up).';
+        return;
+      }
+      if (status.tunnel === 'down') {
+        vpnStatus.className = 'vpn-status err';
+        vpnStatus.textContent = 'Bridge found, but WireGuard tunnel is DOWN. Bring it up (wg-quick up <name>) then Connect again.';
+        return;
+      }
+      // Enable Privacy Route pointing at the local bridge
+      return sendVpn({ type: 'VPN_SET', config: { host: host, port: port, protocol: 'socks5', enabled: true, leakProtect: true } }).then(function(state) {
+        setVpnUI(state);
+        vpnStatus.className = 'vpn-status ok';
+        vpnStatus.textContent = 'Connected via WireGuard tunnel (' + status.tunnelAdapter + '). AI sites now routed through VPN.';
+      });
+    });
+  });
+
   setInterval(loadStats, 2000);
 });

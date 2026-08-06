@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const vpnProto = document.getElementById('vpnProto');
   const vpnLeakToggle = document.getElementById('vpnLeakToggle');
   const vpnStatus = document.getElementById('vpnStatus');
+  const vpnConnectBtn = document.getElementById('vpnConnectBtn');
 
   function setVpnUI(state) {
     if (!state) return;
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
       vpnPort.disabled = true;
       vpnProto.disabled = true;
       vpnLeakToggle.disabled = true;
+      vpnConnectBtn.style.display = 'none';
       vpnStatus.className = 'vpn-status err';
       vpnStatus.textContent = 'Privacy Route is not supported by this browser.';
       return;
@@ -125,6 +127,38 @@ document.addEventListener('DOMContentLoaded', () => {
     requestsCount.textContent = '0';
     piiCount.textContent = '0';
     piiList.innerHTML = '<div class="pii-item"><span class="pii-type">Statistics cleared</span></div>';
+  });
+
+  // ── Connect VPN: probe local bridge, then enable Privacy Route ──
+  function probeBridge(host, port) {
+    return fetch(`http://${host}:${port}/`).then((r) => r.json()).catch(() => null);
+  }
+
+  vpnConnectBtn.addEventListener('click', () => {
+    const host = vpnHost.value.trim() || '127.0.0.1';
+    const port = parseInt(vpnPort.value, 10) || 1080;
+    vpnConnectBtn.disabled = true;
+    vpnStatus.className = 'vpn-status';
+    vpnStatus.textContent = `Probing ${host}:${port} ...`;
+
+    probeBridge(host, port).then((status) => {
+      vpnConnectBtn.disabled = false;
+      if (!status) {
+        vpnStatus.className = 'vpn-status err';
+        vpnStatus.textContent = `No bridge at ${host}:${port}. Start it: node vpn/socks5-bridge.mjs (with your WireGuard tunnel up).`;
+        return;
+      }
+      if (status.tunnel === 'down') {
+        vpnStatus.className = 'vpn-status err';
+        vpnStatus.textContent = 'Bridge found, but WireGuard tunnel is DOWN. Bring it up (wg-quick up <name>) then Connect again.';
+        return;
+      }
+      sendVpn({ type: 'VPN_SET', config: { host, port, protocol: 'socks5', enabled: true, leakProtect: true } }).then((state) => {
+        setVpnUI(state);
+        vpnStatus.className = 'vpn-status ok';
+        vpnStatus.textContent = `Connected via WireGuard tunnel (${status.tunnelAdapter}). AI sites now routed through VPN.`;
+      });
+    });
   });
 
   updateStats();

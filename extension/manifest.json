@@ -6,6 +6,8 @@
   "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
   "permissions": ["storage", "proxy", "privacy"],
   "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",
     "https://copilot.microsoft.com/*",

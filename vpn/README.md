@@ -108,10 +108,18 @@ host: 127.0.0.1   port: 1080   protocol: SOCKS5
 ```
 Every one of the 19 protected AI-chat sites will then travel through your WireGuard VPN.
 
+**One-click connect:** the extension exposes a **Connect VPN** button that probes
+`http://127.0.0.1:1080/` (the bridge answers with a small JSON status), confirms the
+WireGuard adapter is up, and auto-configures + enables Privacy Route for you. Open
+`http://127.0.0.1:1080/` in a browser anytime to inspect the tunnel status:
+```json
+{"ok":true,"service":"ai-firewall-vpn-bridge","tunnel":"up","tunnelAdapter":"wg0",...}
+```
+
 ## Testing
 
 ```bash
-node vpn/test-bridge.mjs     # SOCKS5 bridge: handshake, echo round-trip, BIND/SOCKS4 rejection
+node vpn/test-bridge.mjs     # SOCKS5 bridge: handshake, echo round-trip, BIND/SOCKS4 rejection, HTTP status probe
 ```
 
 ## Security notes
