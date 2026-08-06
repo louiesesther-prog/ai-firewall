@@ -94,7 +94,10 @@ This is the same result as step 2 below, but `server-deploy.sh` bundles everythi
 
 ### 2. Set up the server (the one component you rent)
 
-You must own/rent a VPS with a public IP (DigitalOcean, Vultr, Hetzner, Linode — a ~$4/mo droplet is plenty). This is the other side of the tunnel; without it there is no VPN destination.
+You must own/rent a VPS with a public IP — but it doesn't have to cost anything.
+See **[vpn/FREE_VPS.md](FREE_VPS.md)** for permanently free Ubuntu servers on
+Oracle Cloud ("Always Free") and Google Cloud (e2-micro). These run WireGuard fine
+at $0. (DigitalOcean / Vultr / Hetzner ~$4/mo is also fine if you prefer a classic host.)
 
 ```bash
 # on the VPS (Ubuntu/Debian), as root:

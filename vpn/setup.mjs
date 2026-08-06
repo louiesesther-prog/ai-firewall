@@ -60,6 +60,7 @@ async function main() {
     if (argv[i] === '--help') {
       console.log('AI Firewall VPN — all-in-one installer');
       console.log('Usage: node vpn/setup.mjs [--host <vps-ip>] [--user <ssh-user>] [--clients n] [--port n]');
+      console.log('No VPS yet? There are permanently FREE servers — see vpn/FREE_VPS.md (Oracle Cloud / Google Cloud).');
       process.exit(0);
     }
   }

@@ -454,11 +454,11 @@ ai-firewall scan ./docs</pre>
 <section id="vpn" style="background:var(--bg2)">
   <div class="container">
     <h2 class="section-title">Built-in WireGuard VPN</h2>
-    <p class="section-sub">A real, native VPN for full network privacy &mdash; built on the audited WireGuard protocol. You host the server, so no third-party provider ever sees your traffic.</p>
+    <p class="section-sub">A real, native VPN for full network privacy &mdash; built on the audited WireGuard protocol. You host the server, so no third-party provider ever sees your traffic. Runs on a permanently free server kit.</p>
     <div class="vpn-steps">
       <div class="vpn-step">
-        <h3><span>1.</span> Rent a VPS</h3>
-        <p>Any cheap Ubuntu/Debian VPS (~$4/mo). The server script installs WireGuard and configures NAT in one command.</p>
+        <h3><span>1.</span> Get a free server</h3>
+        <p>$0 forever — Oracle Cloud &amp; Google Cloud free tiers run WireGuard with room to spare. See <a href="vpn/FREE_VPS.md" style="color:var(--primary-light)">FREE_VPS.md</a>. (Or any Ubuntu VPS ~$4/mo.)</p>
       </div>
       <div class="vpn-step">
         <h3><span>2.</span> Generate keys</h3>
@@ -483,6 +483,9 @@ ai-firewall scan ./docs</pre>
       <div class="term-body"># EASIEST — one command from your machine (auto deploys + connects):
 node vpn/setup.mjs --host YOUR_VPS_IP --user root
 
+# No server yet? Get a FREE one:  vpn/FREE_VPS.md
+# (Oracle Cloud Always Free / Google Cloud e2-micro, $0 forever)
+
 # ...or manual, step by step vpn/ folder commands:
 bash vpn/server/setup.sh          # on your VPS (once)
 node vpn/generate.mjs --endpoint YOUR_VPS_IP   # local keys + configs
@@ -500,8 +503,8 @@ node vpn/socks5-bridge.mjs                     # local SOCKS5 proxy
         <p>Blocks all non-tunnel traffic at the firewall if the VPN drops &mdash; no leaks to your ISP when the tunnel is down.</p>
       </div>
       <div class="vpn-step">
-        <h3>&#128737; You host the server</h3>
-        <p>No third-party VPN provider sees your traffic. You rent a cheap VPS, run the script, and all AI traffic rides your private encrypted tunnel.</p>
+        <h3>&#128737; You host the server — free</h3>
+        <p>No third-party VPN provider sees your traffic. Free tiers (Oracle/Google) give you a permanent $0 server &mdash; all AI traffic rides your private encrypted tunnel.</p>
       </div>
       <div class="vpn-step">
         <h3>&#128279; Full docs</h3>
