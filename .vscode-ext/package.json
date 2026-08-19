@@ -9,7 +9,7 @@
   "categories": ["Security", "Programming Languages", "Other"],
   "keywords": ["pii", "privacy", "security", "ai-chat", "masking"],
   "icon": "icon.png",
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
   "contributes": {
     "commands": [
@@ -50,6 +50,24 @@
           "type": "boolean",
           "default": true,
           "description": "Enable/disable PII detection"
+        },
+        "ai-firewall.diagnosticsEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline diagnostics (squiggly underlines) for detected PII"
+        },
+        "ai-firewall.complianceProfile": {
+          "type": "string",
+          "default": "none",
+          "enum": ["none", "gdpr", "hipaa", "pci-dss", "ccpa"],
+          "enumDescriptions": [
+            "Detect all PII types (no filtering)",
+            "GDPR: personal data relevant to EU privacy regulation",
+            "HIPAA: protected health information identifiers",
+            "PCI-DSS: payment card and financial data",
+            "CCPA: personal information under California privacy law"
+          ],
+          "description": "Compliance profile to filter which PII types are detected and flagged"
         }
       }
     }

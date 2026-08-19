@@ -550,6 +550,98 @@ setInterval(loadHealth, 5000);
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  // ── FILE UPLOAD ENDPOINT ──────────────────────────────────────
+  app.use('/scan-file', (req, res, next) => {
+    if (req.method !== 'POST' || !(req.headers['content-type'] || '').includes('multipart/form-data')) return next();
+    const ct = req.headers['content-type'] || '';
+    const boundaryMatch = ct.match(/boundary=(.+)/i);
+    if (!boundaryMatch) return res.status(400).json({ error: 'Missing multipart boundary.' });
+    const boundary = '--' + boundaryMatch[1].trim();
+
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+      try {
+        const raw = Buffer.concat(chunks).toString('utf8');
+        const parts = raw.split(boundary).filter(p => p.trim() && p.trim() !== '--');
+        let filename = 'uploaded.txt';
+        let textContent = '';
+
+        for (const part of parts) {
+          const headerEnd = part.indexOf('\r\n\r\n');
+          if (headerEnd === -1) continue;
+          const headers = part.substring(0, headerEnd);
+          const body = part.substring(headerEnd + 4);
+          const cleaned = body.replace(/\r\n$/, '');
+          const fnMatch = headers.match(/filename="([^"]+)"/i);
+          const nameMatch = headers.match(/name="([^"]+)"/i);
+          if (fnMatch) filename = fnMatch[1];
+          if (nameMatch && (nameMatch[1] === 'text' || nameMatch[1] === 'content')) {
+            textContent = cleaned;
+          } else if (!textContent) {
+            textContent = cleaned;
+          }
+        }
+
+        if (!textContent.trim()) return res.status(400).json({ error: 'No text content found in upload.' });
+
+        const activeProfile = (req.body && req.body.profile) || profile;
+        const activeRules = (req.body && req.body.profile)
+          ? resolveRules(Object.assign({}, config, { profile: req.body.profile }), req.body.profile)
+          : rules;
+
+        const findings = [];
+        for (const rule of activeRules) {
+          const regex = new RegExp(rule.regex.source, 'g' + (rule.regex.flags.includes('i') ? 'i' : ''));
+          let m;
+          while ((m = regex.exec(textContent)) !== null) {
+            const raw = m[0];
+            let conf = rule.conf;
+            if (rule.luhn) {
+              const clean = raw.replace(/[-\s]/g, '');
+              if (clean.length >= 13 && clean.length <= 19) {
+                conf = luhnCheck(clean) ? 0.95 : 0.3;
+              }
+            }
+            const before = textContent.substring(0, m.index);
+            const line = (before.match(/\n/g) || []).length + 1;
+            const lastNewline = before.lastIndexOf('\n');
+            const column = m.index - lastNewline;
+            findings.push({ type: rule.label, name: rule.name, match: raw, confidence: conf, line, column });
+          }
+        }
+        findings.sort((a, b) => a.line - b.line || a.column - b.column);
+
+        const riskScore = computeRiskScore(findings.map(f => ({ type: f.type, confidence: f.confidence })));
+
+        res.json({
+          filename,
+          findings,
+          riskScore,
+          matchesFound: findings.length,
+          inputLength: textContent.length,
+          profile: activeProfile,
+        });
+
+        if (tracker && findings.length > 0) {
+          try {
+            tracker.trackScan({
+              source: 'api',
+              fileType: 'file-upload',
+              fileName: filename,
+              matches: findings.map(f => ({ type: f.type, confidence: f.confidence })),
+              riskScore,
+              profile: activeProfile,
+            });
+          } catch (e) { /* non-blocking */ }
+        }
+      } catch (err) {
+        res.status(500).json({ error: 'Failed to parse multipart data.' });
+      }
+    });
+    req.on('error', () => res.status(500).json({ error: 'Upload failed.' }));
+  });
+
   // ── 404 handler ──────────────────────────────────────────────
   app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });

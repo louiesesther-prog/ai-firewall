@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var vpnLeakToggle = document.getElementById('vpnLeakToggle');
   var vpnStatus = document.getElementById('vpnStatus');
   var vpnConnectBtn = document.getElementById('vpnConnectBtn');
+  var blockedSiteInput = document.getElementById('blockedSiteInput');
+  var addBlockedSite = document.getElementById('addBlockedSite');
+  var blockedSitesList = document.getElementById('blockedSitesList');
 
   function sendVpn(msg) {
     return new Promise(function(resolve) {
@@ -81,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   function loadStats() {
-    chrome.storage.local.get(['fw_stats', 'isEnabled'], function(data) {
+    chrome.storage.local.get(['fw_stats', 'isEnabled', 'enableSound'], function(data) {
       var stats = data.fw_stats || { requests: 0, piiDetected: 0, types: {} };
       requestsCount.textContent = stats.requests || 0;
       piiCount.textContent = stats.piiDetected || 0;
@@ -102,11 +105,63 @@ document.addEventListener('DOMContentLoaded', function() {
       if (data.isEnabled !== undefined) {
         enableToggle.checked = data.isEnabled;
       }
+      if (data.enableSound !== undefined) {
+        soundToggle.checked = data.enableSound;
+      }
     });
   }
   
   loadStats();
   loadVpn();
+
+  // ── Per-site blocked sites management ──
+  var currentBlockedSites = [];
+
+  function renderBlockedSites() {
+    blockedSitesList.innerHTML = '';
+    if (currentBlockedSites.length === 0) {
+      blockedSitesList.innerHTML = '<div style="color:#666;padding:4px 0">No blocked sites</div>';
+      return;
+    }
+    currentBlockedSites.forEach(function(site, idx) {
+      var item = document.createElement('div');
+      item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #1a1a3e';
+      item.innerHTML = '<span>' + site + '</span>';
+      var removeBtn = document.createElement('button');
+      removeBtn.textContent = '✕';
+      removeBtn.style.cssText = 'background:none;border:none;color:#e94560;cursor:pointer;font-size:13px;font-weight:bold;padding:0 4px';
+      removeBtn.addEventListener('click', function() {
+        currentBlockedSites.splice(idx, 1);
+        chrome.storage.local.set({ blockedSites: currentBlockedSites });
+        renderBlockedSites();
+      });
+      item.appendChild(removeBtn);
+      blockedSitesList.appendChild(item);
+    });
+  }
+
+  chrome.storage.local.get(['blockedSites'], function(data) {
+    currentBlockedSites = data.blockedSites || [];
+    renderBlockedSites();
+  });
+
+  addBlockedSite.addEventListener('click', function() {
+    var site = blockedSiteInput.value.trim().toLowerCase();
+    if (!site) return;
+    // Strip protocol if user includes it
+    site = site.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (currentBlockedSites.indexOf(site) !== -1) return;
+    currentBlockedSites.push(site);
+    chrome.storage.local.set({ blockedSites: currentBlockedSites });
+    blockedSiteInput.value = '';
+    renderBlockedSites();
+  });
+
+  blockedSiteInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      addBlockedSite.click();
+    }
+  });
   
   enableToggle.addEventListener('change', function() {
     chrome.storage.local.set({ isEnabled: enableToggle.checked });

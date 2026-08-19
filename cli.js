@@ -342,6 +342,7 @@ async function scanDirAsync(dirPath, config, profile, plugins, options) {
         if (findings.length > 0) {
           results[full] = findings;
         }
+        if (options && options.onFile) options.onFile(full);
       }
     }
   }
@@ -731,6 +732,7 @@ Scan Options:
   --format, -F <fmt>     Output: text (default), json, csv-summary, html
   --file <path>          Scan single file only
   --fix                  Auto-scrub PII in-place (modifies files)
+  --dry-run              Preview --fix changes without writing (implies --fix)
   --diff                 Show before/after diff of PII changes
   --progress             Show progress bar during directory scan
   --ocr                  Enable OCR for image files (requires tesseract.js)
@@ -907,6 +909,7 @@ async function main() {
     let singleFile = null;
     let summaryOnly = false;
     let fixMode = false;
+    let dryRun = false;
     let diffMode = false;
     let encryptMode = false;
     let encryptKey = null;
@@ -922,6 +925,7 @@ async function main() {
         case '--format': case '-F': format = args[++i]; break;
         case '--file': singleFile = args[++i]; break;
         case '--fix': fixMode = true; break;
+        case '--dry-run': dryRun = true; fixMode = true; break;
         case '--diff': diffMode = true; break;
         case '--encrypt': encryptMode = true; encryptKey = args[++i]; break;
         case '--progress': showProgress = true; break;
@@ -978,7 +982,10 @@ async function main() {
         console.log('Scanning ' + progressTotal + ' files...');
         results = await scanDirAsync(scanTarget, config, profile, plugins, { ocr: ocrMode });
       } else {
-        results = await scanDirAsync(scanTarget, config, profile, plugins, { ocr: ocrMode });
+        results = await scanDirAsync(scanTarget, config, profile, plugins, {
+          ocr: ocrMode,
+          onFile: showProgress ? function() { progressCount++; showProgressBar(); } : undefined
+        });
       }
     }
 
@@ -1051,14 +1058,26 @@ async function main() {
         try {
           const content = fs.readFileSync(f, 'utf8');
           const scrubbed = scrub(content, { mode: 'placeholder', rules: configRules, fakers: customFakers });
-          fs.writeFileSync(f, scrubbed.scrubbed, 'utf8');
+          if (dryRun) {
+            console.log('\n=== DRY RUN: ' + f + ' (' + scrubbed.matches.length + ' changes) ===');
+            const lines = content.split('\n');
+            const scrubbedLines = scrubbed.scrubbed.split('\n');
+            for (let i = 0; i < Math.max(lines.length, scrubbedLines.length); i++) {
+              if ((lines[i] || '') !== (scrubbedLines[i] || '')) {
+                console.log('  - Ln ' + (i + 1) + ': ' + (lines[i] || '').substring(0, 60));
+                console.log('  + Ln ' + (i + 1) + ': ' + (scrubbedLines[i] || '').substring(0, 60));
+              }
+            }
+          } else {
+            fs.writeFileSync(f, scrubbed.scrubbed, 'utf8');
+            console.log('Fixed: ' + f + ' (' + scrubbed.matches.length + ' PII items masked)');
+          }
           fixedCount++;
-          console.log('Fixed: ' + f + ' (' + scrubbed.matches.length + ' PII items masked)');
         } catch (e) {
           console.error('Error fixing ' + f + ': ' + e.message);
         }
       }
-      console.log('\nFixed ' + fixedCount + ' file(s), ' + totalMatches + ' match(es) scrubbed.');
+      console.log('\n' + (dryRun ? 'Dry run:' : 'Fixed ') + fixedCount + ' file(s), ' + totalMatches + ' match(es) ' + (dryRun ? 'would be scrubbed.' : 'scrubbed.'));
       return;
     }
 

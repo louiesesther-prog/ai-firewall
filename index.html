@@ -249,7 +249,16 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); text-align: cente
             <div class="demo-card">
                 <div class="card-header-row">
                     <h4>Input</h4>
-                    <span class="risk-badge" id="riskBadge">Risk: <span id="riskScore">0</span></span>
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <span class="risk-badge" id="riskBadge">Risk: <span id="riskScore">0</span></span>
+                        <select id="profileSelect" style="width:auto;padding:4px 8px;font-size:11px;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+                            <option value="none">No Compliance</option>
+                            <option value="gdpr">GDPR</option>
+                            <option value="hipaa">HIPAA</option>
+                            <option value="pci">PCI-DSS</option>
+                            <option value="ccpa">CCPA</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="highlight-container">
                     <div class="highlight-backdrop" id="highlightBackdrop"></div>
@@ -269,7 +278,7 @@ Examples:
                     <span id="liveText">Type to see live detection</span>
                 </div>
                 <div class="btn-row">
-                    <button class="btn" onclick="processText()">Scrub PII</button>
+                    <button class="btn" id="actionBtn" onclick="TAB_CONFIG[currentDemoTab].action()">Scrub PII</button>
                     <button class="btn btn-outline" onclick="clearDemo()">Clear</button>
                     <button class="btn btn-outline btn-icon" onclick="copyOutput()">Copy</button>
                     <button class="btn btn-outline btn-icon" onclick="downloadOutput()">Download</button>
@@ -282,14 +291,27 @@ Examples:
                     <button class="btn btn-outline btn-sm" onclick="exportJSON()">JSON</button>
                     <button class="btn btn-outline btn-sm" onclick="exportCSV()">CSV</button>
                 </div>
+                <div class="tabs" style="margin-top:12px">
+                    <button class="mode-btn active" data-tab="scrub" onclick="switchDemoTab('scrub')">Scrub</button>
+                    <button class="mode-btn" data-tab="scan" onclick="switchDemoTab('scan')">Scan</button>
+                    <button class="mode-btn" data-tab="diff" onclick="switchDemoTab('diff')">Diff</button>
+                    <button class="mode-btn" data-tab="encrypt" onclick="switchDemoTab('encrypt')">Encrypt</button>
+                    <button class="mode-btn" data-tab="decrypt" onclick="switchDemoTab('decrypt')">Decrypt</button>
+                </div>
                 <div class="upload-zone" id="uploadZone">
                     Drop a .txt, .csv or .json file here, or click to browse
                     <input type="file" id="fileInput" accept=".txt,.csv,.json">
                 </div>
             </div>
             <div class="demo-card">
-                <h4>Output (PII Masked)</h4>
+                <h4 id="outputHeading">Output (PII Masked)</h4>
                 <textarea id="outputText" readonly placeholder="Scrubbed output will appear here..." style="width:100%;min-height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:13px;resize:vertical;line-height:1.7"></textarea>
+                <div id="encDecryptControls" style="display:none">
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <input type="password" id="encPassphrase" placeholder="Passphrase" style="flex:1;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+                        <button class="btn btn-sm" id="encActionBtn" onclick="doEncAction()">Encrypt</button>
+                    </div>
+                </div>
                 <div class="detected-pii" id="detectedPii" style="display:none">
                     <h5>Detected PII <span id="piiCountBadge" style="color:var(--warn);font-size:11px"></span></h5>
                     <div class="pii-tags" id="piiTags"></div>
@@ -873,6 +895,226 @@ function clearDemo() {
     document.getElementById('liveDot').className = 'dot';
     document.getElementById('liveText').textContent = 'Type to see live detection';
 }
+
+// ── DEMO TABS ──────────────────────────────────────────────────
+let currentDemoTab = 'scrub';
+
+const TAB_CONFIG = {
+    scrub:   { heading: 'Output (PII Masked)',    placeholder: 'Scrubbed output will appear here...',  btn: 'Scrub PII',    action: processText },
+    scan:    { heading: 'Scan Results',             placeholder: 'Scan results will appear here...',    btn: 'Scan PII',     action: doScan },
+    diff:    { heading: 'Diff (Before / After)',    placeholder: 'Diff will appear here...',            btn: 'Show Diff',    action: doDiff },
+    encrypt: { heading: 'Encrypted Output',         placeholder: 'Encrypted text will appear here...',  btn: 'Encrypt PII',  action: doEncryptClient },
+    decrypt: { heading: 'Decrypted Output',         placeholder: 'Decrypted text will appear here...',  btn: 'Decrypt',      action: doDecryptClient },
+};
+
+function switchDemoTab(tab) {
+    currentDemoTab = tab;
+    const cfg = TAB_CONFIG[tab];
+
+    document.querySelectorAll('.demo-section .tabs .mode-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.getElementById('outputHeading').textContent = cfg.heading;
+    document.getElementById('outputText').placeholder = cfg.placeholder;
+    document.getElementById('outputText').value = '';
+    document.getElementById('actionBtn').textContent = cfg.btn;
+
+    const encControls = document.getElementById('encDecryptControls');
+    const scrubBtn = document.getElementById('actionBtn');
+    const modeToggle = document.getElementById('modeToggle');
+
+    if (tab === 'encrypt' || tab === 'decrypt') {
+        encControls.style.display = 'block';
+        if (tab === 'encrypt') {
+            document.getElementById('encActionBtn').textContent = 'Encrypt';
+        } else {
+            document.getElementById('encActionBtn').textContent = 'Decrypt';
+        }
+        scrubBtn.style.display = 'none';
+        modeToggle.style.display = 'none';
+    } else {
+        encControls.style.display = 'none';
+        scrubBtn.style.display = '';
+        modeToggle.style.display = tab === 'scrub' ? '' : 'none';
+    }
+
+    document.getElementById('detectedPii').style.display = 'none';
+    document.getElementById('riskBadge').className = 'risk-badge';
+}
+
+function doEncAction() {
+    if (currentDemoTab === 'encrypt') doEncryptClient();
+    else if (currentDemoTab === 'decrypt') doDecryptClient();
+}
+
+// ── CLIENT-SIDE ENCRYPT / DECRYPT (Web Crypto API) ─────────────
+const SALT = new Uint8Array([0x41,0x49,0x2D,0x46,0x57,0x2D,0x53,0x41,0x4C,0x54,0x2D,0x30,0x30,0x30,0x30,0x30]);
+const IV_LEN = 12;
+
+async function deriveKeyClient(passphrase) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: SALT, iterations: 100000, hash: 'SHA-256' },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+async function encryptValueClient(value, key) {
+    const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
+    const enc = new TextEncoder();
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(value));
+    const buf = new Uint8Array(iv.length + new Uint8Array(ct).length);
+    buf.set(iv, 0);
+    buf.set(new Uint8Array(ct), iv.length);
+    return btoa(String.fromCharCode(...buf));
+}
+
+async function decryptValueClient(encoded, key) {
+    try {
+        const data = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+        const iv = data.slice(0, IV_LEN);
+        const ct = data.slice(IV_LEN);
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+        return new TextDecoder().decode(pt);
+    } catch (e) { return null; }
+}
+
+async function doEncryptClient() {
+    const text = document.getElementById('inputText').value;
+    const pass = document.getElementById('encPassphrase').value;
+    if (!text) return alert('Enter text to encrypt.');
+    if (!pass) return alert('Enter a passphrase.');
+
+    const key = await deriveKeyClient(pass);
+    const rules = getAllRules();
+    let result = text;
+    let count = 0;
+
+    for (const rule of rules) {
+        const re = new RegExp(rule.regex.source, 'g' + (rule.regex.flags.includes('i') ? 'i' : ''));
+        const matches = [...result.matchAll(re)].reverse();
+        for (const m of matches) {
+            const enc = await encryptValueClient(m[0], key);
+            result = result.substring(0, m.index) + '[ENC:' + enc + ']' + result.substring(m.index + m[0].length);
+            count++;
+        }
+    }
+
+    document.getElementById('outputText').value = result;
+    document.getElementById('outputHeading').textContent = 'Encrypted Output (' + count + ' items)';
+}
+
+async function doDecryptClient() {
+    const text = document.getElementById('inputText').value;
+    const pass = document.getElementById('encPassphrase').value;
+    if (!text) return alert('Enter encrypted text to decrypt.');
+    if (!pass) return alert('Enter the passphrase.');
+
+    const key = await deriveKeyClient(pass);
+    let restored = 0;
+    const re = /\[ENC:([^\]]+)\]/g;
+    let result = '';
+    let lastIdx = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+        result += text.substring(lastIdx, m.index);
+        const val = await decryptValueClient(m[1], key);
+        if (val !== null) { restored++; result += val; }
+        else { result += '[DECRYPT_FAILED]'; }
+        lastIdx = m.index + m[0].length;
+    }
+    result += text.substring(lastIdx);
+
+    document.getElementById('outputText').value = result;
+    document.getElementById('outputHeading').textContent = 'Decrypted Output (' + restored + ' tokens restored)';
+}
+
+// ── CLIENT-SIDE SCAN ───────────────────────────────────────────
+function doScan() {
+    const text = document.getElementById('inputText').value;
+    if (!text) return;
+    const rules = getAllRules();
+    const findings = [];
+
+    for (const rule of rules) {
+        const regex = new RegExp(rule.regex.source, 'g' + (rule.regex.flags.includes('i') ? 'i' : ''));
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+            let conf = rule.conf;
+            if (rule.luhn) {
+                const clean = m[0].replace(/[-\s]/g, '');
+                if (clean.length >= 13 && clean.length <= 19) {
+                    conf = luhnCheck(clean) ? 0.95 : 0.3;
+                }
+            }
+            const before = text.substring(0, m.index);
+            const line = (before.match(/\n/g) || []).length + 1;
+            const lastNewline = before.lastIndexOf('\n');
+            const column = m.index - lastNewline;
+            findings.push({ type: rule.label, name: rule.name, match: m[0], confidence: conf, line, column });
+        }
+    }
+    findings.sort((a, b) => a.line - b.line || a.column - b.column);
+
+    const score = computeRiskScore(findings.map(f => ({ type: f.type, confidence: f.confidence })));
+    let out = findings.length === 0 ? 'No PII detected.' : '';
+    for (const f of findings) {
+        out += 'Ln ' + f.line + ' Col ' + f.column + ' [' + f.type + '] ' + f.match + ' (conf: ' + Math.round(f.confidence * 100) + '%)\n';
+    }
+
+    document.getElementById('outputText').value = out || 'No PII detected.';
+    document.getElementById('outputHeading').textContent = 'Scan Results (' + findings.length + ' findings, risk: ' + score + ')';
+
+    const badge = document.getElementById('riskBadge');
+    badge.className = 'risk-badge visible';
+    badge.classList.remove('low', 'medium', 'high');
+    if (score < 30) badge.classList.add('low');
+    else if (score < 60) badge.classList.add('medium');
+    else badge.classList.add('high');
+    document.getElementById('riskScore').textContent = score;
+}
+
+// ── CLIENT-SIDE DIFF ───────────────────────────────────────────
+function doDiff() {
+    const input = document.getElementById('inputText').value;
+    if (!input) return;
+    const output = scrub(input);
+    const lines = input.split('\n');
+    const scrubbedLines = output.split('\n');
+    const changes = [];
+    for (let i = 0; i < Math.max(lines.length, scrubbedLines.length); i++) {
+        if ((lines[i] || '') !== (scrubbedLines[i] || '')) {
+            changes.push({ line: i + 1, before: lines[i] || '', after: scrubbedLines[i] || '' });
+        }
+    }
+    let out = changes.length === 0 ? 'No changes.' : '';
+    for (const c of changes) {
+        out += 'Ln ' + c.line + ':\n- ' + c.before.substring(0, 80) + '\n+ ' + c.after.substring(0, 80) + '\n\n';
+    }
+    document.getElementById('outputText').value = out || 'No changes.';
+    document.getElementById('outputHeading').textContent = 'Diff (' + changes.length + ' changes)';
+}
+
+// ── COMPLIANCE PROFILE FILTERING ───────────────────────────────
+const COMPLIANCE_PROFILES = {
+    none: [],
+    gdpr: ['EMAIL_ADDR','PHONE_NUM','IP_ADDR','ADDRESS','DOB','PASSPORT','LICENSE','UK_NI','UK_NHS','IN_AADHAAR','IN_PAN','CA_SIN','JP_MY','BR_CPF','FR_INSEE','CRYPTO','BANK_ACCT','ROUTING'],
+    hipaa: ['EMAIL_ADDR','PHONE_NUM','SSN_NUM','DOB','PASSPORT','LICENSE','ADDRESS','UK_NI','UK_NHS','IN_AADHAAR','CA_SIN','JP_MY','BR_CPF','FR_INSEE','BANK_ACCT'],
+    pci: ['CC_NUM','SSN_NUM','BANK_ACCT','ROUTING','EMAIL_ADDR','PHONE_NUM'],
+    ccpa: ['EMAIL_ADDR','PHONE_NUM','SSN_NUM','IP_ADDR','ADDRESS','DOB','PASSPORT','LICENSE','CA_SIN'],
+};
+
+const origGetAllRules = getAllRules;
+getAllRules = function() {
+    const profile = document.getElementById('profileSelect').value;
+    const allRules = origGetAllRules();
+    const allowedTypes = COMPLIANCE_PROFILES[profile];
+    if (!allowedTypes || allowedTypes.length === 0) return allRules;
+    return allRules.filter(r => allowedTypes.includes(r.label));
+};
+
 function installExtension() { alert('To install:\n\n1. Chrome: chrome://extensions/\n2. Enable Developer mode\n3. Load unpacked\n4. Select extension/ folder'); }
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -880,6 +1122,7 @@ applyTheme(loadTheme());
 renderCustomRules();
 renderHistory();
 updateStats();
+document.getElementById('profileSelect').addEventListener('change', () => { if (allMatches.length > 0) processText(); });
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
 if (!localStorage.getItem('ai-fw-stats')) { stats.sessions = 1; saveStats(); } else {
     const last = localStorage.getItem('ai-fw-last-visit');

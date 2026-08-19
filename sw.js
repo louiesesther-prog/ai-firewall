@@ -1,5 +1,13 @@
-const CACHE = 'ai-firewall-v2';
-const CORE_URLS = ['/', '/index.html', '/landing.html', '/manifest.json'];
+const CACHE = 'ai-firewall-v3';
+const CORE_URLS = [
+  '/',
+  '/index.html',
+  '/landing.html',
+  '/manifest.json',
+  '/sw.js',
+  '/cli.js',
+  '/server.js',
+];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
