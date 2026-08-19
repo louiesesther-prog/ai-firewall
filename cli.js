@@ -3,110 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// ── PII RULES ────────────────────────────────────────────────────
-const BUILTIN_RULES = [
-  { id:'crypto',  name:'Crypto Wallet',   label:'CRYPTO',   regex:/0x[a-fA-F0-9]{40}/g,                       conf:0.95 },
-  { id:'mac',     name:'MAC Address',     label:'MAC_ADDR', regex:/[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}/g, conf:0.95 },
-  { id:'cc',      name:'Credit Card',     label:'CC_NUM',   regex:/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, conf:0.9, luhn:true },
-  { id:'ssn',     name:'SSN',             label:'SSN_NUM',  regex:/\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,            conf:0.85 },
-  { id:'apikey',  name:'API Key',         label:'APIKEY',   regex:/(?:api[_-]?key|api key)[=:\s]+\S+/gi,         conf:0.85 },
-  { id:'pwd',     name:'Password',        label:'PWD_VAL',  regex:/(?:password|passwd|pass)[=:\s]+\S+/gi,        conf:0.8 },
-  { id:'dob',     name:'Date of Birth',   label:'DOB',      regex:/(?:DOB|date\s*of\s*birth|birth\s*date)[=:\s]*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/gi, conf:0.9 },
-  { id:'passport',name:'Passport',        label:'PASSPORT', regex:/\b[A-Z]\d{8}\b/g,                             conf:0.85 },
-  { id:'phone',   name:'Phone Number',    label:'PHONE_NUM',regex:/\b(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, conf:0.8 },
-  { id:'ip',      name:'IP Address',      label:'IP_ADDR',  regex:/(?<!\b[vV]ersion\s)\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, conf:0.65 },
-  { id:'routing', name:'Routing Number',  label:'ROUTING',  regex:/\b\d{9}\b/g,                                  conf:0.4 },
-  { id:'email',   name:'Email Address',   label:'EMAIL_ADDR',regex:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, conf:0.95 },
-  { id:'license', name:'Driver License',  label:'LICENSE',  regex:/(?:driver'?s?\s*license|dl|license)[=:\s]*[A-Z0-9]{5,14}/gi, conf:0.7 },
-  { id:'address', name:'Street Address',  label:'ADDRESS',  regex:/\b\d{1,5}\s+[\w\s]{2,}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Circle|Cir|Place|Pl)\.?\b/gi, conf:0.6 },
-  { id:'bank',    name:'Bank Account',    label:'BANK_ACCT',regex:/(?:account|acct|acc)\s*(?:#|number|num|no)?[=:\s]+\d{5,17}/gi, conf:0.7 },
-  { id:'uk-ni',   name:'UK National Insurance', label:'UK_NI', regex:/\b[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-Z]\b/gi, conf:0.85 },
-  { id:'uk-nhs',  name:'UK NHS Number',          label:'UK_NHS', regex:/\b\d{3}\s?\d{3}\s?\d{4}\b/g, conf:0.7 },
-  { id:'in-aadhaar',name:'India Aadhaar',        label:'IN_AADHAAR', regex:/\b\d{4}\s?\d{4}\s?\d{4}\b/g, conf:0.85 },
-  { id:'in-pan',  name:'India PAN',              label:'IN_PAN', regex:/\b[A-Z]{5}\d{4}[A-Z]\b/gi, conf:0.9 },
-  { id:'cn-id',   name:'China ID (18位)',        label:'CN_ID', regex:/\b\d{6}\d{8}\d{3}[\dXx]\b/g, conf:0.85 },
-  { id:'ca-sin',  name:'Canada SIN',             label:'CA_SIN', regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g, conf:0.7 },
-
-  // ── Token / infrastructure ─────────────────────────────────
-  { id:'jwt',     name:'JWT Token',           label:'JWT',      regex:/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, conf:0.95 },
-  { id:'aws-key', name:'AWS Access Key',      label:'AWS_KEY',  regex:/\bAKIA[0-9A-Z]{16}\b/g,                          conf:0.95 },
-  { id:'github',  name:'GitHub Token',        label:'GITHUB',   regex:/\b(?:ghp_|gho_|ghu_|ghs_|ghr_)[a-zA-Z0-9]{36}\b/g, conf:0.95 },
-  { id:'slack',   name:'Slack Token',         label:'SLACK',    regex:/\bxox[baprs]-[a-zA-Z0-9-]{10,}\b/g,               conf:0.95 },
-
-  // ── More i18n ──────────────────────────────────────────────
-  { id:'au-tfn',  name:'Australia TFN',       label:'AU_TFN',   regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g,                     conf:0.4 },
-  { id:'jp-my',   name:'Japan My Number',     label:'JP_MY',    regex:/\b\d{4}-\d{4}-\d{4}\b/g,                          conf:0.85 },
-  { id:'br-cpf',  name:'Brazil CPF',          label:'BR_CPF',   regex:/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,              conf:0.8 },
-  { id:'br-cnpj', name:'Brazil CNPJ',         label:'BR_CNPJ',  regex:/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,      conf:0.85 },
-  { id:'fr-insee',name:'France INSEE',        label:'FR_INSEE', regex:/\b\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\b/g, conf:0.7 },
-];
-
-const FAKERS = {
-  EMAIL_ADDR: () => 'user' + (Math.floor(Math.random() * 9000) + 1000) + '@example.com',
-  PHONE_NUM: () => '555-' + (Math.floor(Math.random() * 900) + 100) + '-' + (Math.floor(Math.random() * 9000) + 1000),
-  CC_NUM: () => '4111' + Array(12).fill(0).map(() => Math.floor(Math.random() * 10)).join(''),
-  SSN_NUM: () => (Math.floor(Math.random() * 900) + 100) + '-' + (Math.floor(Math.random() * 90) + 10) + '-' + (Math.floor(Math.random() * 9000) + 1000),
-  IP_ADDR: () => Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256),
-  PWD_VAL: () => '[REDACTED]',
-  APIKEY: () => 'sk-' + Array(24).fill(0).map(() => 'abcdef0123456789'[Math.floor(Math.random() * 16)]).join(''),
-  CRYPTO: () => '0x' + Array(40).fill(0).map(() => 'abcdef0123456789'[Math.floor(Math.random() * 16)]).join(''),
-  MAC_ADDR: () => Array(6).fill(0).map(() => ('0' + Math.floor(Math.random() * 256).toString(16)).slice(-2)).join(':'),
-  DOB: () => (Math.floor(Math.random() * 12) + 1).toString().padStart(2,'0') + '/' + (Math.floor(Math.random() * 28) + 1).toString().padStart(2,'0') + '/' + (Math.floor(Math.random() * 30 + 1970)),
-  PASSPORT: () => String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
-  LICENSE: () => 'DL' + Math.floor(Math.random() * 10000000).toString().padStart(7, '0'),
-  ADDRESS: () => Math.floor(Math.random() * 9999) + 1 + ' ' + ['Main','Oak','Elm','Pine','Maple','Cedar'][Math.floor(Math.random()*6)] + ' ' + ['Street','Avenue','Road','Drive','Lane'][Math.floor(Math.random()*5)],
-  BANK_ACCT: () => '****' + Math.floor(Math.random() * 100000).toString().padStart(5, '0'),
-  ROUTING: () => Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
-  UK_NI: () => 'AB' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0') + 'C',
-  UK_NHS: () => Math.floor(Math.random() * 10000000000).toString().padStart(10, '0'),
-  IN_AADHAAR: () => Math.floor(Math.random() * 10000).toString().padStart(4,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
-  IN_PAN: () => 'ABCDE' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + 'Z',
-  CN_ID: () => Math.floor(Math.random() * 100000000000000000).toString().padStart(18, '0'),
-  CA_SIN: () => Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
-  JWT: () => 'eyJhbGciOiJIUzI1NiJ9.' + Array(43).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789_-ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 64)]).join('') + '.' + Array(43).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789_-ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 64)]).join(''),
-  AWS_KEY: () => 'AKIA' + Array(16).fill(0).map(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join(''),
-  GITHUB: () => 'ghp_' + Array(36).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 62)]).join(''),
-  SLACK: () => 'xoxb-' + Array(16).fill(0).map(() => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('') + '-' + Array(10).fill(0).map(() => '0123456789'[Math.floor(Math.random() * 10)]).join(''),
-  AU_TFN: () => Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
-  JP_MY: () => Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
-  BR_CPF: () => Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
-  BR_CNPJ: () => Math.floor(Math.random() * 100).toString().padStart(2,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '/' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
-  FR_INSEE: () => Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 1000).toString().padStart(3,'0'),
-};
+// ── PII RULES (canonical source: rules.cjs) ─────────────────────
+const { BUILTIN_RULES, FAKERS, COMPLIANCE_PROFILES, RISK_WEIGHTS, luhnCheck } = require('./rules.cjs');
+const { analyzeDocument, contextScore, detectMissingPII } = require('./context.cjs');
 
 function fakeFor(label, extraFakers) { const fn = (extraFakers && extraFakers[label]) || FAKERS[label]; return fn ? fn() : '[FAKE_' + label + ']'; }
-
-function luhnCheck(num) {
-  const digits = num.replace(/\D/g, '');
-  if (digits.length < 13 || digits.length > 19) return false;
-  if (/^0+$/.test(digits)) return false;
-  let sum = 0, alt = false;
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let n = parseInt(digits[i], 10);
-    if (alt) { n *= 2; if (n > 9) n -= 9; }
-    sum += n; alt = !alt;
-  }
-  return sum % 10 === 0;
-}
-
-// ── COMPLIANCE PROFILES ──────────────────────────────────────────
-const COMPLIANCE_PROFILES = {
-  none: { desc:'No filtering — all PII types active', match: id => true },
-  gdpr: { desc:'General Data Protection Regulation — EU personal data', match: id => ['email','phone','ip','address','dob','license','bank','uk-ni','uk-nhs','in-aadhaar','in-pan','cn-id','ca-sin','au-tfn','jp-my','br-cpf','br-cnpj','fr-insee'].includes(id) },
-  hipaa: { desc:'Health Insurance Portability and Accountability Act — US health data', match: id => ['email','phone','ssn','dob','passport','license','address','bank','ip','cc'].includes(id) },
-  'pci-dss': { desc:'Payment Card Industry Data Security Standard — cardholder data', match: id => ['cc','ssn','email','phone','address','bank','routing'].includes(id) },
-  ccpa: { desc:'California Consumer Privacy Act — California resident data', match: id => ['email','phone','ssn','cc','dob','passport','license','address','bank','ip','crypto','mac'].includes(id) },
-};
-
-const RISK_WEIGHTS = {
-  CC_NUM: 20, SSN_NUM: 20, PWD_VAL: 18, APIKEY: 15, BANK_ACCT: 15,
-  UK_NI: 14, IN_AADHAAR: 14, CN_ID: 14, CA_SIN: 14,
-  PASSPORT: 12, LICENSE: 10, DOB: 10, UK_NHS: 10, IN_PAN: 10,
-  PHONE_NUM: 8, EMAIL_ADDR: 8, ADDRESS: 8, CRYPTO: 8,
-  IP_ADDR: 5, MAC_ADDR: 5, ROUTING: 5,
-  JWT: 18, AWS_KEY: 16, GITHUB: 16, SLACK: 16,
-  AU_TFN: 5, JP_MY: 10, BR_CPF: 8, BR_CNPJ: 10, FR_INSEE: 8,
-};
 
 // ── PLUGIN SYSTEM ─────────────────────────────────────────────────
 function loadPlugins(pluginPaths) {
@@ -201,8 +102,15 @@ function getCustomFakers(config) {
       const label = cr.label || (cr.id ? cr.id.toUpperCase() : 'CUSTOM');
       if (cr.faker) {
         try {
-          const fn = new Function('return ' + cr.faker)();
-          if (typeof fn === 'function') fakers[label] = fn;
+          if (typeof cr.faker === 'function') {
+            fakers[label] = cr.faker;
+          } else if (typeof cr.faker === 'string') {
+            const fn = new Function('return ' + cr.faker)();
+            if (typeof fn === 'function') {
+              console.warn('WARNING: String-based faker for "' + (cr.id || 'unknown') + '" executes arbitrary code. Use a function reference instead.');
+              fakers[label] = fn;
+            }
+          }
         } catch (e) {
           console.error('Invalid faker for "' + (cr.id || 'unknown') + '": ' + e.message);
         }
@@ -223,6 +131,8 @@ function scrub(text, options = {}) {
   let result = text;
   const matches = [];
 
+  const docStats = analyzeDocument(text);
+
   for (const rule of rules) {
     const regex = new RegExp(rule.regex.source, rule.regex.flags);
     let match;
@@ -238,6 +148,7 @@ function scrub(text, options = {}) {
       }
 
       conf = applyHeuristics(rule, raw, match.index, result, conf);
+      conf = contextScore(rule, raw, match.index, result, conf, docStats, matches);
 
       let replacement;
       if (mode === 'realistic') {
@@ -247,9 +158,23 @@ function scrub(text, options = {}) {
       }
 
       matches.push({ type: rule.label, name: rule.name, original: raw, replacement, confidence: conf });
-      result = result.replace(raw, replacement);
+      result = result.split(raw).join(replacement);
       counter++;
     }
+  }
+
+  // Detect additional PII that regex misses (names, etc.)
+  const extraMatches = detectMissingPII(result, docStats);
+  for (const em of extraMatches) {
+    let replacement;
+    if (mode === 'realistic') {
+      replacement = fakeFor(em.type, extraFakers) || 'John Smith';
+    } else {
+      replacement = '[PERSON_NAME_' + counter + ']';
+    }
+    matches.push({ type: em.type, name: em.name, original: em.match, replacement, confidence: em.confidence });
+    result = result.split(em.match).join(replacement);
+    counter++;
   }
 
   return { scrubbed: result, matches };
@@ -289,11 +214,17 @@ function applyHeuristics(rule, raw, idx, text, conf) {
   }
 
   // Statistical classifier: digit-heavy context with no letters = unnatural text
-  if (rule.id === 'phone' && conf > 0.5) {
+  if ((rule.id === 'phone' || rule.id === 'uk-nhs') && conf > 0.5) {
     const letters = (ctx.match(/[a-zA-Z]/g) || []).length;
     const digits = (ctx.match(/\d/g) || []).length;
     const total = ctx.replace(/\s/g, '').length || 1;
     if (digits / total > 0.6 && letters < 3) return 0.2;
+  }
+
+  // DE_TAX: reduce if preceded by +CC phone prefix
+  if (rule.id === 'de-tax') {
+    const prefix = text.substring(Math.max(0, idx - 15), idx);
+    if (/\+\d{2,4}\s/.test(prefix)) return 0.15;
   }
 
   return conf;
@@ -339,9 +270,85 @@ const DEFAULT_CONFIG = {
   format: 'text',
   risk: false,
   exclude: ['node_modules', '.git', '__pycache__', '*.pyc', '.vscode', 'dist', 'build', '.opencode'],
-  include: ['*.js', '*.ts', '*.py', '*.json', '*.txt', '*.md', '*.html', '*.css', '*.yml', '*.yaml', '*.env', '*.cfg', '*.ini', '*.conf'],
+  include: ['*.js', '*.ts', '*.py', '*.json', '*.txt', '*.md', '*.html', '*.css', '*.yml', '*.yaml', '*.env', '*.cfg', '*.ini', '*.conf', '*.pdf', '*.docx', '*.png', '*.jpg', '*.jpeg'],
   rules: [],
 };
+
+// ── DOCUMENT SCAN ───────────────────────────────────────────────
+const DOC_EXTS = ['.pdf', '.docx', '.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp'];
+
+function isDocumentFile(filePath) {
+  return DOC_EXTS.includes(path.extname(filePath).toLowerCase());
+}
+
+async function scanFileAsync(filePath, rules, options) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!DOC_EXTS.includes(ext)) {
+    return scanFile(filePath, rules);
+  }
+  try {
+    const { extractText } = require('./scanners/index');
+    const text = await extractText(filePath, { ocr: !!(options && options.ocr) });
+    if (!text) return [];
+    const findings = [];
+    for (const rule of rules) {
+      const regex = new RegExp(rule.regex.source, 'g' + (rule.regex.flags.includes('i') ? 'i' : ''));
+      let m;
+      while ((m = regex.exec(text)) !== null) {
+        const raw = m[0];
+        let conf = rule.conf;
+        if (rule.luhn) {
+          const clean = raw.replace(/[-\s]/g, '');
+          if (clean.length >= 13 && clean.length <= 19) {
+            conf = luhnCheck(clean) ? 0.95 : 0.3;
+          }
+        }
+        findings.push({
+          type: rule.label,
+          name: rule.name,
+          match: raw,
+          confidence: conf,
+          line: findLineNumber(text, m.index),
+          column: findColumn(text, m.index),
+        });
+      }
+    }
+    findings.sort((a, b) => a.line - b.line || a.column - b.column);
+    return findings;
+  } catch (e) {
+    console.error('  Document scan error (' + filePath + '): ' + e.message);
+    return [];
+  }
+}
+
+async function scanDirAsync(dirPath, config, profile, plugins, options) {
+  const rules = resolveRules(config, profile, (plugins && plugins.rules) || []);
+  const exclude = config.exclude || DEFAULT_CONFIG.exclude;
+  const include = config.include || DEFAULT_CONFIG.include;
+  const results = {};
+
+  async function walk(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir); } catch (e) { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry);
+      if (shouldExclude(full, exclude)) continue;
+      let stat;
+      try { stat = fs.statSync(full); } catch (e) { continue; }
+      if (stat.isDirectory()) {
+        await walk(full);
+      } else if (stat.isFile() && shouldInclude(full, include)) {
+        const findings = await scanFileAsync(full, rules, options);
+        if (findings.length > 0) {
+          results[full] = findings;
+        }
+      }
+    }
+  }
+
+  await walk(dirPath);
+  return results;
+}
 
 // ── SCAN ─────────────────────────────────────────────────────────
 function matchesGlob(filePath, pattern) {
@@ -503,7 +510,7 @@ exit 0
 
 // ── HTML REPORT ──────────────────────────────────────────────────
 function generateHtmlReport(results, riskScore) {
-  const escape = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const escape = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const fileCount = Object.keys(results).length;
   let totalMatches = 0;
   for (const f of Object.keys(results)) totalMatches += results[f].length;
@@ -563,7 +570,7 @@ ${body}
 
 // ── DIFF REPORT (inline highlighted) ─────────────────────────────
 function generateDiffReport(results, origContents, scrubbedContents) {
-  const escape = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const escape = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   function highlightInline(orig, scrubbed) {
     const oLines = orig.split('\n');
     const sLines = scrubbed.split('\n');
@@ -661,7 +668,8 @@ function decryptValue(encoded, key) {
 }
 
 function deriveKey(passphrase) {
-  return crypto.createHash('sha256').update(passphrase).digest();
+  const salt = crypto.createHash('sha256').update('ai-firewall-salt-v2').digest();
+  return crypto.pbkdf2Sync(passphrase, salt, 100000, 32, 'sha256');
 }
 
 // ── WATCH MODE ────────────────────────────────────────────────────
@@ -700,8 +708,10 @@ Usage:
 
 Commands:
   scan [dir]             Recursively scan directory for PII (default: .)
+  ci [dir]               CI/CD scan — exits with code 1 if PII found above threshold
   watch <dir>            Watch directory for changes and report PII
   serve [port]           Start REST API server (default port: 3000)
+  bot                    Start Slack/Discord bot (--slack or --discord)
   init                   Create .ai-firewallrc config + pre-commit hook
   --help, -h             Show this help
   --list                 List supported PII types
@@ -723,6 +733,7 @@ Scan Options:
   --fix                  Auto-scrub PII in-place (modifies files)
   --diff                 Show before/after diff of PII changes
   --progress             Show progress bar during directory scan
+  --ocr                  Enable OCR for image files (requires tesseract.js)
   --report <path>        Save report to file
   --encrypt <passphrase> Replace PII with AES-256-GCM encrypted tokens
   --summary              Show per-file summary with counts only
@@ -753,11 +764,17 @@ Examples:
   node cli.js watch ./src                    # watch for changes
   node cli.js serve                          # start REST API on :3000
   node cli.js serve --port 4000              # start REST API on :4000
+  node cli.js serve --analytics              # start with analytics dashboard
   node cli.js scan --profile gdpr            # scan with GDPR profile
   node cli.js scan --diff                    # show before/after diff
   node cli.js scan --encrypt mykey           # encrypt PII found in files
   node cli.js scan --progress                # show progress bar
   node cli.js scan --report report.html      # save report to file
+  node cli.js ci                             # CI/CD scan (exit 1 if PII found)
+  node cli.js ci --fail-threshold 5          # fail only if >=5 PII items
+  node cli.js bot --slack                    # start Slack bot
+  node cli.js bot --discord                  # start Discord bot
+  node cli.js bot --slack --token xoxb-...   # start with token override
 `);
 }
 
@@ -777,7 +794,7 @@ function printTypes() {
 }
 
 // ── MAIN ─────────────────────────────────────────────────────────
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   if (args.includes('--help') || args.includes('-h') || args.length === 0 && process.stdin.isTTY) {
     printHelp();
@@ -808,12 +825,14 @@ function main() {
     let port = parseInt(process.env.PORT, 10) || 3000;
     let configPath = null;
     let profile = 'none';
+    let analytics = false;
     for (let i = 1; i < args.length; i++) {
       if (args[i] === '--port' || args[i] === '-p') port = parseInt(args[++i], 10);
       if (args[i] === '--config' || args[i] === '-c') configPath = args[++i];
       if (args[i] === '--profile') profile = args[++i] || 'none';
+      if (args[i] === '--analytics') analytics = true;
     }
-    startServer(port, { config: configPath, profile });
+    startServer(port, { config: configPath, profile, analytics });
     return;
   }
 
@@ -823,6 +842,61 @@ function main() {
     const configPluginPaths = (config && config.plugins && Array.isArray(config.plugins)) ? config.plugins : [];
     const plugins = loadPlugins(configPluginPaths);
     watchDir(watchTarget, config, plugins);
+    return;
+  }
+
+  if (args[0] === 'bot') {
+    let platform = null;
+    let botConfig = null;
+    let configPath = null;
+
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--slack') platform = 'slack';
+      if (args[i] === '--discord') platform = 'discord';
+      if (args[i] === '--config' || args[i] === '-c') configPath = args[++i];
+      if (args[i] === '--token') {
+        if (!botConfig) botConfig = {};
+        botConfig.token = args[++i];
+      }
+    }
+
+    const config = loadConfig(configPath);
+    if (config && config.bot) {
+      botConfig = Object.assign(botConfig || {}, config.bot);
+    }
+
+    if (!platform && botConfig) {
+      platform = botConfig.platform;
+    }
+
+    if (!platform) {
+      console.error('Usage: node cli.js bot --slack | --discord');
+      console.error('Configure bot tokens in .ai-firewallrc or pass --token');
+      process.exit(1);
+    }
+
+    if (platform === 'slack') {
+      const slackConfig = (botConfig && botConfig.slack) || botConfig || {};
+      if (!slackConfig.token) {
+        console.error('Slack token required. Set in .ai-firewallrc or pass --token');
+        process.exit(1);
+      }
+      const { startSlackBot } = require('./bot/slack.cjs');
+      console.log('Starting Slack bot...');
+      startSlackBot(slackConfig);
+    } else if (platform === 'discord') {
+      const discordConfig = (botConfig && botConfig.discord) || botConfig || {};
+      if (!discordConfig.token) {
+        console.error('Discord token required. Set in .ai-firewallrc or pass --token');
+        process.exit(1);
+      }
+      const { startDiscordBot } = require('./bot/discord.cjs');
+      console.log('Starting Discord bot...');
+      startDiscordBot(discordConfig);
+    } else {
+      console.error('Unknown platform: ' + platform + '. Use --slack or --discord');
+      process.exit(1);
+    }
     return;
   }
 
@@ -839,6 +913,7 @@ function main() {
     let showProgress = false;
     let reportPath = null;
     let profile = 'none';
+    let ocrMode = false;
     const pluginPaths = [];
 
     for (let i = 1; i < args.length; i++) {
@@ -853,6 +928,7 @@ function main() {
         case '--report': reportPath = args[++i]; break;
         case '--summary': summaryOnly = true; break;
         case '--profile': profile = args[++i] || 'none'; break;
+        case '--ocr': ocrMode = true; break;
         case '--plugin': pluginPaths.push(args[++i]); break;
         default:
           if (!args[i].startsWith('-')) scanTarget = args[i];
@@ -879,18 +955,30 @@ function main() {
 
     let results;
     if (singleFile) {
-      const findings = scanFile(singleFile, configRules);
+      const findings = await scanFileAsync(singleFile, configRules, { ocr: ocrMode });
       results = findings.length > 0 ? { [singleFile]: findings } : {};
     } else {
       if (showProgress) {
-        // count total files first
-        try { function countFiles(d) { let e; try { e = fs.readdirSync(d); } catch(ex) { return; } for (const en of e) { const f = path.join(d, en); if (shouldExclude(f, config.exclude || DEFAULT_CONFIG.exclude)) continue; try { const s = fs.statSync(f); if (s.isDirectory()) countFiles(f); else if (s.isFile() && shouldInclude(f, config.include || DEFAULT_CONFIG.include)) progressTotal++; } catch(ex) {} } } countFiles(scanTarget); } catch(e) {}
+        try {
+          function countFiles(d) {
+            let e;
+            try { e = fs.readdirSync(d); } catch(ex) { return; }
+            for (const en of e) {
+              const f = path.join(d, en);
+              if (shouldExclude(f, config.exclude || DEFAULT_CONFIG.exclude)) continue;
+              try {
+                const s = fs.statSync(f);
+                if (s.isDirectory()) countFiles(f);
+                else if (s.isFile() && shouldInclude(f, config.include || DEFAULT_CONFIG.include)) progressTotal++;
+              } catch(ex) {}
+            }
+          }
+          countFiles(scanTarget);
+        } catch(e) {}
         console.log('Scanning ' + progressTotal + ' files...');
-        const origScanFile = scanFile;
-        const _scanFile = scanFile;
-        results = scanDir(scanTarget, config, profile, plugins);
+        results = await scanDirAsync(scanTarget, config, profile, plugins, { ocr: ocrMode });
       } else {
-        results = scanDir(scanTarget, config, profile, plugins);
+        results = await scanDirAsync(scanTarget, config, profile, plugins, { ocr: ocrMode });
       }
     }
 
@@ -938,7 +1026,7 @@ function main() {
           let content = fs.readFileSync(f, 'utf8');
           for (const m of findings) {
             const encrypted = encryptValue(m.match, encKey);
-            content = content.replace(m.match, '[ENC:' + encrypted + ']');
+            content = content.split(m.match).join('[ENC:' + encrypted + ']');
             encryptedCount++;
           }
           if (fixMode) {
@@ -1035,6 +1123,72 @@ function main() {
     return;
   }
 
+  if (args[0] === 'ci') {
+    let scanTarget = '.';
+    let failThreshold = 1;
+    let format = 'json';
+    let configPath = null;
+    let profile = 'none';
+
+    for (let i = 1; i < args.length; i++) {
+      switch (args[i]) {
+        case '--fail-threshold': failThreshold = parseInt(args[++i], 10); break;
+        case '--format': case '-F': format = args[++i]; break;
+        case '--config': case '-c': configPath = args[++i]; break;
+        case '--profile': profile = args[++i] || 'none'; break;
+        default:
+          if (!args[i].startsWith('-')) scanTarget = args[i];
+      }
+    }
+
+    const config = loadConfig(configPath);
+    const configRules = resolveRules(config, profile);
+    const isFile = fs.existsSync(scanTarget) && fs.statSync(scanTarget).isFile();
+
+    let results;
+    if (isFile) {
+      const findings = scanFile(scanTarget, configRules);
+      results = findings.length > 0 ? [{ file: scanTarget, matches: findings }] : [];
+    } else {
+      const dirResults = scanDir(scanTarget, config, profile);
+      results = Object.entries(dirResults).map(([file, matches]) => ({ file, matches }));
+    }
+
+    const totalPII = results.reduce((sum, r) => sum + r.matches.length, 0);
+    const highConf = results.reduce((sum, r) => sum + r.matches.filter(m => m.confidence >= 0.8).length, 0);
+    const failed = totalPII >= failThreshold;
+
+      if (format === 'json') {
+        const report = { timestamp: new Date().toISOString(), scanTarget, totalFiles: results.length, totalPII, highConfidencePII: highConf, failed, matches: [] };
+        for (const r of results) {
+          for (const m of r.matches) {
+            report.matches.push({ file: r.file, line: m.line, column: m.column, type: m.type, original: m.original, confidence: m.confidence });
+          }
+        }
+        console.log(JSON.stringify(report, null, 2));
+      } else {
+        console.log('AI Firewall CI Scan Results');
+        console.log('==========================');
+        console.log('Target:    ' + scanTarget);
+        console.log('Files:     ' + results.length);
+        console.log('PII Found: ' + totalPII + ' (' + highConf + ' high confidence)');
+        console.log('Status:    ' + (failed ? 'FAIL' : 'PASS'));
+        if (results.length > 0) {
+          console.log('');
+          for (const r of results) {
+            if (r.matches.length > 0) {
+              console.log('  ' + r.file + ':');
+              for (const m of r.matches) {
+                console.log('    L' + m.line + ':' + m.column + ' [' + m.type + '] ' + (m.match || m.original || '').substring(0, 40) + ((m.match || m.original || '').length > 40 ? '...' : '') + ' (conf: ' + m.confidence.toFixed(2) + ')');
+              }
+            }
+          }
+        }
+      }
+      process.exit(failed ? 1 : 0);
+    return;
+  }
+
   // ── SCRUB MODE ────────────────────────────────────────────────
   let filePath = null;
   let outPath = null;
@@ -1128,4 +1282,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { scrub, scanFile, scanDir, loadConfig, resolveRules, computeRiskScore, luhnCheck, generateHtmlReport, generateDiffReport, watchDir, encryptValue, decryptValue, deriveKey, loadPlugins, BUILTIN_RULES, FAKERS, COMPLIANCE_PROFILES, getCustomFakers };
+module.exports = { scrub, scanFile, scanDir, loadConfig, resolveRules, computeRiskScore, luhnCheck, generateHtmlReport, generateDiffReport, watchDir, encryptValue, decryptValue, deriveKey, loadPlugins, BUILTIN_RULES, FAKERS, COMPLIANCE_PROFILES, RISK_WEIGHTS, getCustomFakers };

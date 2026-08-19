@@ -11,14 +11,14 @@ const PII_RULES = [
   { id:'ip',      name:'IP Address',      label:'IP_ADDR',  regex:/(?<!\b[vV]ersion\s)\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,   conf:0.65 },
   { id:'routing', name:'Routing Number',  label:'ROUTING',  regex:/\b\d{9}\b/g,                                  conf:0.4 },
   { id:'email',   name:'Email Address',   label:'EMAIL_ADDR',regex:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, conf:0.95 },
-  { id:'license', name:'Driver License',  label:'LICENSE',  regex:/(?:driver'?s?\s*license|driver'?s?\s*lic|dl|license)[=:\s]*[A-Z0-9]{5,14}/gi, conf:0.7 },
+  { id:'license', name:'Driver License',  label:'LICENSE',  regex:/(?:driver'?s?\s*license|dl|license)[=:\s]*[A-Z0-9]{5,14}/gi, conf:0.7 },
   { id:'address', name:'Street Address',  label:'ADDRESS',  regex:/\b\d{1,5}\s+[\w\s]{2,}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Circle|Cir|Place|Pl)\.?\b/gi, conf:0.6 },
   { id:'bank',    name:'Bank Account',    label:'BANK_ACCT',regex:/(?:account|acct|acc)\s*(?:#|number|num|no)?[=:\s]+\d{5,17}/gi, conf:0.7 },
   { id:'uk-ni',   name:'UK National Insurance', label:'UK_NI', regex:/\b[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-Z]\b/gi, conf:0.85 },
   { id:'uk-nhs',  name:'UK NHS Number',          label:'UK_NHS', regex:/\b\d{3}\s?\d{3}\s?\d{4}\b/g, conf:0.7 },
   { id:'in-aadhaar',name:'India Aadhaar',        label:'IN_AADHAAR', regex:/\b\d{4}\s?\d{4}\s?\d{4}\b/g, conf:0.85 },
   { id:'in-pan',  name:'India PAN',              label:'IN_PAN', regex:/\b[A-Z]{5}\d{4}[A-Z]\b/gi, conf:0.9 },
-  { id:'cn-id',   name:'China ID (18位)',        label:'CN_ID', regex:/\b\d{6}\d{8}[\dXx]\b/g, conf:0.85 },
+  { id:'cn-id',   name:'China ID (18\u4f4d)',        label:'CN_ID', regex:/\b\d{6}\d{8}\d{3}[\dXx]\b/g, conf:0.85 },
   { id:'ca-sin',  name:'Canada SIN',             label:'CA_SIN', regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g, conf:0.7 },
 
   // ── Token / infrastructure ─────────────────────────────────
@@ -149,9 +149,59 @@ function applyVpn(callback) {
           });
         }
       } catch (e) { /* privacy API optional */ }
+      // Inject leak protection into active AI chat tabs
+      if (cfg.enabled) {
+        const queryApi = (typeof browser !== 'undefined' && browser.tabs) ? browser.tabs : chrome.tabs;
+        if (queryApi && queryApi.query) {
+          queryApi.query({}, (tabs) => {
+            if (!tabs) return;
+            for (const tab of tabs) {
+              if (tab.id && AI_DOMAINS.some(d => tab.url && tab.url.includes(d))) {
+                applyLeakProtect(tab.id);
+              }
+            }
+          });
+        }
+      }
     }
   }
   chrome.storage.local.set({ vpnConfig: cfg });
+}
+
+function applyLeakProtect(tabId) {
+  try {
+    const api = (typeof browser !== 'undefined' && browser.scripting) ? browser.scripting : chrome.scripting;
+    if (api && api.executeScript) {
+      api.executeScript({
+        target: { tabId: tabId, allFrames: false },
+        world: 'MAIN',
+        func: () => {
+          if (window.__aiFwLeakProtected) return;
+          window.__aiFwLeakProtected = true;
+          try {
+            const RTP = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+            if (!RTP) return;
+            const proto = RTP.prototype;
+            const addIce = proto.addIceCandidate;
+            proto.addIceCandidate = function(candidate) {
+              if (candidate && typeof candidate.candidate === 'string') {
+                const c = candidate.candidate;
+                if (/a=candidate:/.test(c) && /typ\s+host\b/.test(c) && !/\.local\b/.test(c)) {
+                  return Promise.resolve();
+                }
+              }
+              return addIce.call(this, candidate);
+            };
+            Object.defineProperty(proto, 'iceTransportPolicy', {
+              configurable: true,
+              get: function() { return 'relay'; },
+              set: function() {}
+            });
+          } catch (e) {}
+        }
+      });
+    }
+  } catch (e) { /* scripting API optional */ }
 }
 
 function vpnStatus() {
@@ -205,7 +255,7 @@ function scrub(text) {
 
       piiMap[replacement] = raw;
       allMatches.push({ type: rule.label, original: raw, placeholder: replacement, confidence: conf, name: rule.name });
-      scrubbed = scrubbed.replace(raw, replacement);
+      scrubbed = scrubbed.split(raw).join(replacement);
 
       if (!detectedTypes.includes(rule.label)) detectedTypes.push(rule.label);
       stats.piiDetected++;

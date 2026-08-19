@@ -1,0 +1,19 @@
+{
+  "bot": {
+    "platform": "slack",
+    "slack": {
+      "token": "xoxb-your-slack-bot-token",
+      "signingSecret": "your-slack-signing-secret",
+      "appToken": "xapp-your-app-level-token",
+      "scanChannels": ["C_GENERAL", "C_DATA"]
+    },
+    "discord": {
+      "token": "your-discord-bot-token",
+      "prefix": "!",
+      "scanChannels": ["123456789012345678"]
+    },
+    "autoScan": false,
+    "notifyOnPII": true,
+    "minConfidence": 0.7
+  }
+}

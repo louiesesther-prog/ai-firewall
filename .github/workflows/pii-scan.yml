@@ -1,69 +1,83 @@
 name: PII Scan
+
 on:
   pull_request:
-    paths: ['**/*.js', '**/*.ts', '**/*.py', '**/*.json', '**/*.txt', '**/*.md', '**/*.html', '**/*.css', '**/*.yml', '**/*.yaml', '**/*.env', '**/*.cfg']
+    branches: [main, master]
   push:
     branches: [main, master]
-    paths: ['**/*.js', '**/*.ts', '**/*.py', '**/*.json', '**/*.txt', '**/*.md', '**/*.html', '**/*.css', '**/*.yml', '**/*.yaml', '**/*.env', '**/*.cfg']
-  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Run PII scan
+      - run: npm ci
+
+      - name: Scan for PII
+        run: node cli.js ci --format json > pii-report.json
+        continue-on-error: true
+
+      - name: Parse results
+        id: parse
         run: |
-          npm install --omit=dev
-          node cli.js scan . --format json > pii-report.json 2>&1 || true
+          TOTAL=$(node -e "const r=require('./pii-report.json'); console.log(r.totalPII)")
+          FAILED=$(node -e "const r=require('./pii-report.json'); console.log(r.failed)")
+          echo "total_pii=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
 
-      - name: Check for PII findings
-        id: check
-        run: |
-          COUNT=$(node -e "
-            const d = require('fs').readFileSync('pii-report.json','utf8');
-            try{const o=JSON.parse(d);let c=0;for(const[k,v]of Object.entries(o))c+=v.length;console.log(c);}catch(e){console.log(0);}
-          ")
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-          if [ "$COUNT" -gt 0 ]; then echo "PII detected: $COUNT matches"; fi
-
-      - name: Comment PR
-        if: ${{ steps.check.outputs.count > 0 && github.event_name == 'pull_request' }}
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const report = JSON.parse(fs.readFileSync('pii-report.json','utf8'));
-            let body = '## AI Firewall PII Scan Results\n\nPII detected in this PR:\n\n';
-            body += '| File | Type | Match | Line |\n|------|------|-------|------|\n';
-            for (const [file, findings] of Object.entries(report)) {
-              for (const m of findings.slice(0, 10)) {
-                body += `| \`${file}\` | ${m.type} | \`${m.match.substring(0, 40)}\` | ${m.line} |\n`;
-              }
-              if (findings.length > 10) body += `| | *...and ${findings.length - 10} more* | | |\n`;
-            }
-            body += '\n⚠️ Review and remove PII before merging. Use `git commit --no-verify` to bypass.';
+            const totalPII = '${{ steps.parse.outputs.total_pii }}';
+            const failed = '${{ steps.parse.outputs.failed }}' === 'true';
+            const icon = failed ? '🚨' : '✅';
+            const body = [
+              `${icon} **AI Firewall PII Scan**`,
+              '',
+              `| Metric | Value |`,
+              `|--------|-------|`,
+              `| PII Items Found | ${totalPII} |`,
+              `| Status | ${failed ? 'FAIL — PII detected in codebase' : 'PASS — no PII found'} |`,
+              '',
+              failed ? '> **Action required:** Remove or mask PII before merging.' : '> All clear!',
+              '',
+              '<details><summary>Full report</summary>',
+              '',
+              '```json',
+              require('fs').readFileSync('pii-report.json', 'utf8').slice(0, 3000),
+              '```',
+              '</details>'
+            ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: body
+              body
             });
 
       - name: Fail if PII found
-        if: ${{ steps.check.outputs.count > 0 }}
+        if: steps.parse.outputs.failed == 'true'
         run: |
-          echo "::error::PII detected (${{ steps.check.outputs.count }} matches). Review the scan report."
-          node -e "
-            const d=require('fs').readFileSync('pii-report.json','utf8');
-            const o=JSON.parse(d);
-            for(const[f,vs]of Object.entries(o))vs.forEach(m=>console.log('::error file='+f+',line='+m.line+'::'+m.type+' - '+m.match.substring(0,60)));
-          "
+          echo "::error::PII detected in codebase (${{ steps.parse.outputs.total_pii }} items). Remove or mask before merging."
           exit 1
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pii-report
+          path: pii-report.json
+          retention-days: 30

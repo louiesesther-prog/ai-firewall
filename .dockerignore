@@ -1,0 +1,16 @@
+node_modules
+.git
+.github
+dist
+build
+tmp
+vpn-out
+.vscode
+.opencode
+*.zip
+*.log
+assets
+store-assets
+store-images
+pro
+.advanced

@@ -1,4 +1,6 @@
 // ── PII RULES (matching index.html) ──────────────────────────────
+import { analyzeDocument, contextScore, detectMissingPII } from './context.cjs';
+
 const BUILTIN_RULES = [
   { id:'crypto',  label:'CRYPTO',   regex: /0x[a-fA-F0-9]{40}/g,                                              conf:0.95 },
   { id:'mac',     label:'MAC_ADDR', regex: /[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}/g, conf:0.95 },
@@ -34,6 +36,15 @@ const BUILTIN_RULES = [
   { id:'br-cpf',  label:'BR_CPF',   regex: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, conf:0.8 },
   { id:'br-cnpj', label:'BR_CNPJ',  regex: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, conf:0.85 },
   { id:'fr-insee',label:'FR_INSEE', regex: /\b\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\b/g, conf:0.7 },
+
+  // ── New i18n (Germany, Korea, Mexico, Sweden, Italy) ──────
+  { id:'de-id',   label:'DE_ID',    regex: /\b[A-Z]\d{8}\b/g, conf:0.8 },
+  { id:'de-tax',  label:'DE_TAX',   regex: /(?<!\+)(?<!\d)\b\d{2,3}\s\d{3,4}\s\d{3,4}(\s\d{1,2})?\b/g, conf:0.4 },
+  { id:'kr-rrn',  label:'KR_RRN',   regex: /\b\d{6}-[1-4]\d{6}\b/g, conf:0.9 },
+  { id:'mx-curp', label:'MX_CURP',  regex: /\b[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d\b/g, conf:0.95 },
+  { id:'mx-rfc',  label:'MX_RFC',   regex: /\b[A-Z&]{3,4}\d{6}[A-Z0-9]{3}\b/g, conf:0.85 },
+  { id:'se-pn',   label:'SE_PN',    regex: /\b\d{6}[-+]\d{4}\b/g, conf:0.8 },
+  { id:'it-cf',   label:'IT_CF',    regex: /\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/g, conf:0.95 },
 ];
 
 let globalCounter = 1;
@@ -105,6 +116,7 @@ function scrub(text, mode) {
   globalCounter = 1;
   let result = text;
   const matches = [];
+  const docStats = analyzeDocument(text);
 
   for (const rule of BUILTIN_RULES) {
     const regex = new RegExp(rule.regex.source, rule.regex.flags);
@@ -121,6 +133,7 @@ function scrub(text, mode) {
       }
 
       conf = applyHeuristics(rule, raw, match.index, result, conf);
+      conf = contextScore(rule, raw, match.index, result, conf, docStats, matches);
 
       let replacement;
       if (mode === 'realistic') {
@@ -135,6 +148,16 @@ function scrub(text, mode) {
       globalCounter++;
     }
   }
+
+  const extraMatches = detectMissingPII(result, docStats);
+  for (const em of extraMatches) {
+    const replacement = mode === 'realistic' ? (fakeFor(em.type) || 'John Smith') : '[PERSON_NAME_' + globalCounter + ']';
+    piiMap[replacement] = em.match;
+    matches.push({ type: em.type, original: em.match, replacement, confidence: em.confidence });
+    result = result.split(em.match).join(replacement);
+    globalCounter++;
+  }
+
   return { scrubbed: result, piiMap, matches };
 }
 
@@ -305,6 +328,13 @@ const tests = [
   { id:"FP24", cat:"NONE", desc:"Hex string like crypto (40 chars)",  input:"Hex: aabbccddeeff00112233445566778899aabbccdd" },
   { id:"FP25", cat:"FP", desc:"Letter+8digits like passport",         input:"Code: X12345678 in spec", fixedFp:true },
 
+  // ── CONTEXT ENGINE ────────────────────────────────────────────
+  { id:"CTX01", cat:"CTX", desc:"Email boosted by keyword 'email'",    input:"My email is test@example.com", expectPii:1 },
+  { id:"CTX02", cat:"CTX", desc:"Phone boosted by keyword 'call'",     input:"Call me at 555-123-4567", expectPii:1 },
+  { id:"CTX03", cat:"CTX", desc:"SSN boosted by keyword 'social'",     input:"My social security is 123-45-6789", expectPii:1 },
+  { id:"CTX04", cat:"CTX", desc:"Code context reduces confidence",     input:"// regex: 123-45-6789", expectPii:0 },
+  { id:"CTX05", cat:"CTX", desc:"Name detection 'My name is John Smith'", input:"My name is John Smith", expectPii:1 },
+
   // ── NO PII ─────────────────────────────────────────────────────
   { id:"X01", cat:"NONE", desc:"Plain greeting",                      input:"Hello, how are you today?" },
   { id:"X02", cat:"NONE", desc:"Lorem ipsum text",                    input:"Lorem ipsum dolor sit amet consectetur adipiscing elit" },
@@ -361,6 +391,15 @@ const tests = [
   { id:"I18N17", cat:"I18N", desc:"Brazil CNPJ with separators",      input:"CNPJ: 12.345.678/9012-34" },
   { id:"I18N18", cat:"I18N", desc:"France INSEE with separators",     input:"INSEE: 01 23 45 67 89 123" },
   { id:"I18N19", cat:"I18N", desc:"France INSEE contiguous",          input:"INSEE: 0123456789123" },
+
+  // ── New i18n (Germany, Korea, Mexico, Sweden, Italy) ──────
+  { id:"I18N20", cat:"I18N", desc:"Germany Personalausweis",         input:"ID: A12345678" },
+  { id:"I18N21", cat:"I18N", desc:"Germany Tax ID",                  input:"StNr: 123 4567 8901" },
+  { id:"I18N22", cat:"I18N", desc:"Korea Resident Registration",     input:"RRN: 900101-1234567" },
+  { id:"I18N23", cat:"I18N", desc:"Mexico CURP",                     input:"CURP: GARC850101HDFRRN01" },
+  { id:"I18N24", cat:"I18N", desc:"Mexico RFC",                      input:"RFC: GARC850101AB1" },
+  { id:"I18N25", cat:"I18N", desc:"Sweden Personnummer",             input:"Pnr: 900101-1234" },
+  { id:"I18N26", cat:"I18N", desc:"Italy Codice Fiscale",            input:"CF: RSSMRA85M01H501Z" },
 
   // ── TOKEN PATTERNS ──────────────────────────────────────────────
   { id:"TK01", cat:"TOKEN", desc:"JWT token",                        input:"Token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVNHMRc5NvDijV8NqMVsZ7vP3EfbG1s" },
@@ -573,9 +612,9 @@ async function runServerTests() {
       const r = await fetchJSON(base + '/scrub', 'POST', { text: '' });
       return r.status === 400 ? null : 'expected 400';
     }},
-    { id:"SRV09", desc:"CORS header set to *", fn: async (base) => {
+    { id:"SRV09", desc:"CORS not wildcard by default", fn: async (base) => {
       const r = await rawRequest(base + '/health');
-      return r.headers['access-control-allow-origin'] === '*' ? null : 'expected CORS *';
+      return r.headers['access-control-allow-origin'] !== '*' ? null : 'CORS should not be * by default';
     }},
   ];
 

@@ -7,7 +7,8 @@
     position: 'fixed', top: '0', left: '0', zIndex: '2147483647',
     background: '#6366f1', color: 'white', padding: '8px 16px',
     fontFamily: 'monospace', fontSize: '12px', fontWeight: 'bold',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.3)', borderRadius: '0 0 8px 0'
+    boxShadow: '0 2px 10px rgba(0,0,0,0.3)', borderRadius: '0 0 8px 0',
+    transition: 'all 0.2s ease'
   });
   indicator.textContent = '[AI Firewall] Initializing...';
   document.documentElement.appendChild(indicator);
@@ -15,6 +16,8 @@
   var maskMode = 'placeholder';
   var isEnabled = true;
   var piiMap = {};
+  var undoStack = [];
+  var highlightOverlay = null;
   var stats = { requests: 0, piiDetected: 0, types: {} };
 
   var patterns = [
@@ -22,7 +25,7 @@
     { name: 'PHONE', label:'PHONE_NUM', regex: /\b(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, conf:0.8 },
     { name: 'SSN',   label:'SSN_NUM',   regex: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g, conf:0.85 },
     { name: 'CC',    label:'CC_NUM',    regex: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, conf:0.9, luhn:true },
-    { name: 'IP',    label:'IP_ADDR',   regex: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, conf:0.65 },
+    { name: 'IP',    label:'IP_ADDR',   regex: /(?<!\b[vV]ersion\s)\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, conf:0.65 },
     { name: 'APIKEY',label:'APIKEY',    regex: /(?:api[_-]?key|api key)[=:\s]+\S+/gi, conf:0.85 },
     { name: 'PWD',   label:'PWD_VAL',   regex: /(?:password|passwd|pass)[=:\s]+\S+/gi, conf:0.8 },
     { name: 'CRYPTO',label:'CRYPTO',    regex: /0x[a-fA-F0-9]{40}/g, conf:0.95 },
@@ -37,7 +40,7 @@
     { name: 'UK_NHS',label:'UK_NHS',    regex: /\b\d{3}\s?\d{3}\s?\d{4}\b/g, conf:0.7 },
     { name: 'IN_AADHAAR',label:'IN_AADHAAR', regex: /\b\d{4}\s?\d{4}\s?\d{4}\b/g, conf:0.85 },
     { name: 'IN_PAN',label:'IN_PAN',    regex: /\b[A-Z]{5}\d{4}[A-Z]\b/gi, conf:0.9 },
-    { name: 'CN_ID', label:'CN_ID',     regex: /\b\d{6}\d{8}[\dXx]\b/g, conf:0.85 },
+    { name: 'CN_ID', label:'CN_ID',     regex: /\b\d{6}\d{8}\d{3}[\dXx]\b/g, conf:0.85 },
     { name: 'CA_SIN',label:'CA_SIN',    regex: /\b\d{3}\s?\d{3}\s?\d{3}\b/g, conf:0.7 },
 
     { name: 'JWT',   label:'JWT',       regex: /eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, conf:0.95 },
@@ -136,6 +139,109 @@
     return result;
   }
 
+  var TYPE_COLORS = {
+    EMAIL_ADDR: '#ef4444', PHONE_NUM: '#f59e0b', SSN_NUM: '#ef4444',
+    CC_NUM: '#dc2626', IP_ADDR: '#6366f1', APIKEY: '#8b5cf6',
+    PWD_VAL: '#dc2626', CRYPTO: '#6366f1', MAC_ADDR: '#6366f1',
+    DOB: '#f59e0b', PASSPORT: '#f59e0b', LICENSE: '#f59e0b',
+    ADDRESS: '#f59e0b', BANK_ACCT: '#dc2626', ROUTING: '#f59e0b',
+    UK_NI: '#f59e0b', UK_NHS: '#f59e0b', IN_AADHAAR: '#f59e0b',
+    IN_PAN: '#f59e0b', CN_ID: '#f59e0b', CA_SIN: '#f59e0b',
+    JWT: '#8b5cf6', AWS_KEY: '#8b5cf6', GITHUB: '#8b5cf6', SLACK: '#8b5cf6',
+    AU_TFN: '#f59e0b', JP_MY: '#f59e0b', BR_CPF: '#f59e0b',
+    BR_CNPJ: '#f59e0b', FR_INSEE: '#f59e0b',
+  };
+
+  function detectPII(text) {
+    var results = [];
+    patterns.forEach(function(p) {
+      var regex = new RegExp(p.regex.source, p.regex.flags);
+      var m;
+      while ((m = regex.exec(text)) !== null) {
+        results.push({ type: p.label, name: p.name, value: m[0], index: m.index, conf: p.conf });
+      }
+    });
+    return results.sort(function(a, b) { return a.index - b.index; });
+  }
+
+  function createHighlightOverlay(input) {
+    if (highlightOverlay) highlightOverlay.remove();
+    highlightOverlay = document.createElement('div');
+    var rect = input.getBoundingClientRect();
+    Object.assign(highlightOverlay.style, {
+      position: 'absolute', left: rect.left + 'px', top: rect.top + 'px',
+      width: rect.width + 'px', height: rect.height + 'px',
+      pointerEvents: 'none', zIndex: '2147483646',
+      overflow: 'hidden', fontFamily: getComputedStyle(input).fontFamily,
+      fontSize: getComputedStyle(input).fontSize,
+      lineHeight: getComputedStyle(input).lineHeight,
+      padding: getComputedStyle(input).padding,
+      whiteSpace: 'pre-wrap', wordWrap: 'break-word',
+      border: '2px solid transparent', borderRadius: getComputedStyle(input).borderRadius,
+      boxSizing: 'border-box', color: 'transparent',
+    });
+    document.body.appendChild(highlightOverlay);
+    return highlightOverlay;
+  }
+
+  function updateHighlight(input) {
+    if (!highlightOverlay || !isEnabled) {
+      if (highlightOverlay) highlightOverlay.style.borderColor = 'transparent';
+      return;
+    }
+    var text = input.value || input.textContent || '';
+    if (!text.trim()) {
+      highlightOverlay.style.borderColor = 'transparent';
+      highlightOverlay.innerHTML = '';
+      return;
+    }
+    var pii = detectPII(text);
+    if (pii.length === 0) {
+      highlightOverlay.style.borderColor = 'transparent';
+      highlightOverlay.innerHTML = '';
+      return;
+    }
+
+    var maxConf = Math.max.apply(null, pii.map(function(p) { return p.conf; }));
+    if (maxConf > 0.8) {
+      highlightOverlay.style.borderColor = '#ef4444';
+    } else if (maxConf > 0.6) {
+      highlightOverlay.style.borderColor = '#f59e0b';
+    } else {
+      highlightOverlay.style.borderColor = '#6366f1';
+    }
+
+    var html = '';
+    var lastIdx = 0;
+    pii.forEach(function(p) {
+      html += escapeHtml(text.substring(lastIdx, p.index));
+      var color = TYPE_COLORS[p.type] || '#f59e0b';
+      html += '<mark style="background:' + color + '22;color:' + color + ';border-bottom:2px solid ' + color + ';border-radius:2px;padding:0 1px;">' + escapeHtml(p.value) + '</mark>';
+      lastIdx = p.index + p.value.length;
+    });
+    html += escapeHtml(text.substring(lastIdx));
+    highlightOverlay.innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function undoMask() {
+    if (undoStack.length === 0) return false;
+    var last = undoStack.pop();
+    var input = last.input;
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      input.value = last.original;
+    } else {
+      input.textContent = last.original;
+    }
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    indicator.textContent = '[AI Firewall] Undone (' + undoStack.length + ' remaining)';
+    indicator.style.background = '#8b5cf6';
+    return true;
+  }
+
   function saveStats() {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.get(['fw_stats'], function(data) {
@@ -175,14 +281,18 @@
     indicator.textContent = '[AI Firewall] Input found';
     indicator.style.background = '#22c55e';
 
+    var overlay = createHighlightOverlay(input);
+
     input.addEventListener('input', function() {
       if (!isEnabled) {
         indicator.textContent = '[AI Firewall] Disabled';
         indicator.style.background = '#6b7280';
+        if (highlightOverlay) highlightOverlay.style.borderColor = 'transparent';
         return;
       }
       var text = input.value || input.textContent || '';
       var found = detect(text);
+      updateHighlight(input);
       if (found.length > 0) {
         indicator.textContent = '[AI Firewall] PII: ' + found.join(',');
         indicator.style.background = '#f59e0b';
@@ -194,22 +304,40 @@
 
     input.addEventListener('keydown', function(e) {
       if (!isEnabled) return;
+
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        if (undoStack.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          undoMask();
+          return;
+        }
+      }
+
       if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         var text = input.value || input.textContent || '';
         var masked = mask(text);
         if (Object.keys(piiMap).length > 0) {
+          undoStack.push({ input: input, original: text, masked: masked });
+          if (undoStack.length > 10) undoStack.shift();
           if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
             input.value = masked;
           } else {
             input.textContent = masked;
           }
-          indicator.textContent = '[AI Firewall] Masked ' + Object.keys(piiMap).length + ' PII';
+          indicator.textContent = '[AI Firewall] Masked ' + Object.keys(piiMap).length + ' PII (Ctrl+Z to undo)';
           indicator.style.background = '#3b82f6';
+          if (highlightOverlay) highlightOverlay.style.borderColor = '#22c55e';
           stats.requests++;
           stats.piiDetected += Object.keys(piiMap).length;
           saveStats();
         }
       }
+    });
+
+    input.addEventListener('focus', function() { updateHighlight(input); });
+    input.addEventListener('blur', function() {
+      if (highlightOverlay) highlightOverlay.style.borderColor = 'transparent';
     });
   }
 
@@ -250,57 +378,20 @@
     }
   });
 
-  // ── WebRTC / DNS leak protection (main-world injection) ──
+  // ── WebRTC / DNS leak protection (runs in page context via background) ──
   var vpnEnabled = false;
-  var LEAK_PROTECT_SRC = '(' + function() {
-    if (window.__aiFwLeakProtected) return;
-    window.__aiFwLeakProtected = true;
-    try {
-      var RTP = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-      if (!RTP) return;
-      var proto = RTP.prototype;
-      var addIce = proto.addIceCandidate;
-      proto.addIceCandidate = function(candidate) {
-        if (candidate && typeof candidate.candidate === 'string') {
-          var c = candidate.candidate;
-          // Block host candidates that reveal a real IP (allow mDNS .local only)
-          if (/a=candidate:/.test(c) && /typ\s+host\b/.test(c) && !/\.local\b/.test(c)) {
-            return Promise.resolve();
-          }
-        }
-        return addIce.call(this, candidate);
-      };
-      Object.defineProperty(proto, 'iceTransportPolicy', {
-        configurable: true,
-        get: function() { return 'relay'; },
-        set: function() {}
-      });
-    } catch (e) {}
-  }.toString() + ')();';
-
-  function applyLeakProtect() {
-    try {
-      var s = document.createElement('script');
-      s.textContent = LEAK_PROTECT_SRC;
-      (document.head || document.documentElement).appendChild(s);
-      s.remove();
-    } catch (e) {}
-  }
 
   function loadVpnState() {
     chrome.storage.local.get(['vpnConfig'], function(r) {
       if (r.vpnConfig) {
         vpnEnabled = !!r.vpnConfig.enabled && r.vpnConfig.leakProtect !== false;
-        if (vpnEnabled) applyLeakProtect();
       }
     });
   }
   chrome.storage.onChanged.addListener(function(changes) {
     if (changes.vpnConfig !== undefined) {
       var cfg = changes.vpnConfig.newValue || {};
-      var shouldEnable = !!cfg.enabled && cfg.leakProtect !== false;
-      if (shouldEnable && !vpnEnabled) applyLeakProtect();
-      vpnEnabled = shouldEnable;
+      vpnEnabled = !!cfg.enabled && cfg.leakProtect !== false;
     }
   });
   loadVpnState();

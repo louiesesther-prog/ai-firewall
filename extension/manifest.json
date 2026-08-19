@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "AI Personal Firewall",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Detect and mask 30+ PII types in AI chat apps. 100% local with confidence scoring and Luhn validation.",
   "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
   "support_url": "https://ai-firewall.org/support.html",
-  "permissions": ["storage", "proxy", "privacy"],
+  "permissions": ["storage", "proxy", "privacy", "scripting"],
   "host_permissions": [
     "http://127.0.0.1/*",
     "http://localhost/*",

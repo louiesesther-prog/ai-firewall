@@ -1,23 +1,102 @@
 #!/usr/bin/env node
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const { scrub, scanFile, scanDir, resolveRules, loadConfig, loadPlugins, computeRiskScore, luhnCheck, getCustomFakers, encryptValue, decryptValue, deriveKey, BUILTIN_RULES, COMPLIANCE_PROFILES } = require('./cli.js');
 const fs = require('fs');
 
 const DEFAULT_PORT = 3000;
 
+// ── SIMPLE RATE LIMITER (in-memory, no dependencies) ─────────────
+function createRateLimiter({ windowMs = 60000, max = 60 } = {}) {
+  const hits = new Map();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, data] of hits) {
+      if (now - data.start > windowMs) hits.delete(key);
+    }
+  }, windowMs);
+  return (req, res, next) => {
+    const key = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    let entry = hits.get(key);
+    if (!entry || now - entry.start > windowMs) {
+      entry = { start: now, count: 0 };
+      hits.set(key, entry);
+    }
+    entry.count++;
+    res.setHeader('X-RateLimit-Limit', max);
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, max - entry.count));
+    if (entry.count > max) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    next();
+  };
+}
+
+// ── API KEY AUTH (optional, via AI_FIREWALL_API_KEY env var) ──────
+function createAuthMiddleware(apiKey) {
+  if (!apiKey) return (req, res, next) => next();
+  return (req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+    const provided = req.headers['x-api-key'] || req.query.api_key;
+    if (!provided || provided !== apiKey) {
+      return res.status(401).json({ error: 'Unauthorized. Provide X-API-Key header.' });
+    }
+    next();
+  };
+}
+
 function createApp(configOpts = {}) {
   const app = express();
-  app.use(express.json({ limit: '5mb' }));
-  app.use(express.text({ limit: '5mb', type: 'text/plain' }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.text({ limit: '1mb', type: 'text/plain' }));
+
+  // ── Security headers ─────────────────────────────────────────
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.removeHeader('X-Powered-By');
+    next();
+  });
+
+  // ── CORS (configurable, default same-origin) ─────────────────
+  const allowedOrigins = configOpts.cors
+    ? (Array.isArray(configOpts.cors) ? configOpts.cors : [configOpts.cors])
+    : [];
 
   app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', allowedOrigins.includes('*') ? '*' : origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     if (req.method === 'OPTIONS') return res.sendStatus(204);
     next();
   });
+
+  // ── Rate limiting ────────────────────────────────────────────
+  const limiter = createRateLimiter({ windowMs: 60000, max: configOpts.rateLimit || 60 });
+  app.use('/scrub', limiter);
+  app.use('/scan', limiter);
+  app.use('/diff', limiter);
+  app.use('/encrypt', limiter);
+  app.use('/decrypt', limiter);
+  app.use('/rules/custom', limiter);
+
+  // ── API key auth (optional) ──────────────────────────────────
+  const auth = createAuthMiddleware(configOpts.apiKey || process.env.AI_FIREWALL_API_KEY);
+  app.use('/scrub', auth);
+  app.use('/scan', auth);
+  app.use('/diff', auth);
+  app.use('/encrypt', auth);
+  app.use('/decrypt', auth);
+  app.use('/rules/custom', auth);
 
   const config = configOpts.config ? loadConfig(configOpts.config) : {};
   const profile = configOpts.profile || 'none';
@@ -65,8 +144,20 @@ function createApp(configOpts = {}) {
         profile: body.profile || profile,
         customRuleCount: (body.customRules || []).length,
       });
+
+      if (tracker && result.matches.length > 0) {
+        try {
+          tracker.trackScan({
+            source: 'api',
+            fileType: 'text',
+            matches: result.matches.map(m => ({ type: m.type, confidence: m.confidence })),
+            riskScore,
+            profile: body.profile || profile,
+          });
+        } catch (e) { /* non-blocking */ }
+      }
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -109,8 +200,20 @@ function createApp(configOpts = {}) {
       const riskScore = computeRiskScore(findings.map(m => ({ type: m.type, confidence: m.confidence })));
 
       res.json({ findings, riskScore, matchesFound: findings.length, inputLength: inputText.length, profile: body.profile || profile });
+
+      if (tracker && findings.length > 0) {
+        try {
+          tracker.trackScan({
+            source: 'api',
+            fileType: 'text',
+            matches: findings.map(m => ({ type: m.type, confidence: m.confidence })),
+            riskScore,
+            profile: body.profile || profile,
+          });
+        } catch (e) { /* non-blocking */ }
+      }
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -138,7 +241,7 @@ function createApp(configOpts = {}) {
         }
       }
       res.json({ changes, changesFound: changes.length, matches: result.matches });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
   });
 
   app.post('/encrypt', (req, res) => {
@@ -162,8 +265,8 @@ function createApp(configOpts = {}) {
         const re = new RegExp(rule.regex.source, 'g' + (rule.regex.flags.includes('i') ? 'i' : ''));
         result = result.replace(re, (m) => { count++; return '[ENC:' + encryptValue(m, key) + ']'; });
       }
-      res.json({ encrypted: result, itemsEncrypted: count, keyHint: passphrase.substring(0, 4) + '...' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+      res.json({ encrypted: result, itemsEncrypted: count });
+    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
   });
 
   app.post('/decrypt', (req, res) => {
@@ -181,7 +284,7 @@ function createApp(configOpts = {}) {
         return '[DECRYPT_FAILED]';
       });
       res.json({ decrypted, tokensRestored: restored });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
   });
 
   app.get('/', (req, res) => {
@@ -377,8 +480,85 @@ setInterval(loadHealth, 5000);
       const validated = testRules.filter(r => r.custom).map(r => ({ id: r.id, name: r.name, label: r.label, confidence: r.conf }));
       res.json({ success: true, customRulesLoaded: validated.length, rules: validated });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: 'Internal server error' });
     }
+  });
+
+  // ── ANALYTICS ENDPOINTS ──────────────────────────────────────
+  let tracker = null;
+  let queries = null;
+  let analyticsDbPath = null;
+
+  function initAnalytics(dbPath) {
+    try {
+      tracker = require('./analytics/tracker');
+      queries = require('./analytics/queries');
+      analyticsDbPath = dbPath || null;
+      const { getDb } = require('./analytics/db');
+      getDb(dbPath);
+      return true;
+    } catch (e) {
+      console.warn('Analytics unavailable: ' + e.message);
+      return false;
+    }
+  }
+
+  if (configOpts.analytics) {
+    initAnalytics(configOpts.analyticsDb);
+  }
+
+  app.get('/analytics', (req, res) => {
+    try {
+      const htmlPath = path.join(__dirname, 'analytics', 'dashboard.html');
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      res.type('html').send(html);
+    } catch (e) {
+      res.status(500).json({ error: 'Dashboard file not found' });
+    }
+  });
+
+  app.get('/api/analytics/summary', (req, res) => {
+    if (!queries) return res.status(503).json({ error: 'Analytics not enabled. Start with --analytics flag.' });
+    try { res.json(queries.getSummary()); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/analytics/trend', (req, res) => {
+    if (!queries) return res.status(503).json({ error: 'Analytics not enabled.' });
+    const days = parseInt(req.query.days, 10) || 30;
+    try { res.json(queries.getTrendData(days)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/analytics/types', (req, res) => {
+    if (!queries) return res.status(503).json({ error: 'Analytics not enabled.' });
+    const limit = parseInt(req.query.limit, 10) || 10;
+    try { res.json(queries.getTopPIITypes(limit)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/analytics/risk', (req, res) => {
+    if (!queries) return res.status(503).json({ error: 'Analytics not enabled.' });
+    try { res.json(queries.getRiskDistribution()); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/analytics/recent', (req, res) => {
+    if (!queries) return res.status(503).json({ error: 'Analytics not enabled.' });
+    const limit = parseInt(req.query.limit, 10) || 20;
+    try { res.json(queries.getRecentScans(limit)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // ── 404 handler ──────────────────────────────────────────────
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+
+  // ── Global error handler ─────────────────────────────────────
+  app.use((err, req, res, _next) => {
+    console.error('Unhandled error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   });
 
   return app;
@@ -389,17 +569,24 @@ function startServer(port, configOpts, callback) {
   const server = app.listen(port, () => {
     const addr = server.address();
     console.log('AI Firewall API server running on http://localhost:' + addr.port);
-    console.log('Profile: ' + (configOpts.profile || 'none') + ' | Rules: ' + rules.length);
+    console.log('Profile: ' + (configOpts.profile || 'none') + ' | Rules: ' + BUILTIN_RULES.length);
     console.log('Endpoints:');
     console.log('  GET  /          - Web dashboard');
-    console.log('  GET  /health   - Health check');
-    console.log('  GET  /rules    - List PII rules');
-    console.log('  POST /scrub    - Scrub PII from text');
-    console.log('  POST /scan     - Scan text for PII');
-    console.log('  POST /diff     - Show before/after diff');
-    console.log('  POST /encrypt  - Encrypt PII with passphrase');
-    console.log('  POST /decrypt  - Decrypt [ENC:...] tokens');
+    console.log('  GET  /health    - Health check');
+    console.log('  GET  /rules     - List PII rules');
+    console.log('  POST /scrub     - Scrub PII from text');
+    console.log('  POST /scan      - Scan text for PII');
+    console.log('  POST /diff      - Show before/after diff');
+    console.log('  POST /encrypt   - Encrypt PII with passphrase');
+    console.log('  POST /decrypt   - Decrypt [ENC:...] tokens');
     console.log('  POST /rules/custom - Validate custom rules');
+    if (configOpts.analytics) {
+      console.log('  GET  /analytics - Analytics dashboard');
+      console.log('  GET  /api/analytics/* - Analytics API');
+    }
+    if (configOpts.apiKey || process.env.AI_FIREWALL_API_KEY) {
+      console.log('  Auth: API key required (X-API-Key header)');
+    }
     console.log('Press Ctrl+C to stop.');
     if (callback) callback(server);
   });

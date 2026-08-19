@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   cli:
     build: .
@@ -7,7 +5,7 @@ services:
     entrypoint: ["node", "/app/cli.js"]
     command: ["--help"]
     volumes:
-      - .:/data
+      - .:/data:ro
     working_dir: /data
 
   scan:
@@ -16,7 +14,7 @@ services:
     entrypoint: ["node", "/app/cli.js"]
     command: ["scan", ".", "--summary"]
     volumes:
-      - .:/data
+      - .:/data:ro
     working_dir: /data
 
   api:
@@ -26,12 +24,16 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/data
+      - .:/data:ro
     working_dir: /data
+    restart: unless-stopped
 
   web:
     image: nginx:alpine
     ports:
       - "8080:80"
     volumes:
-      - .:/usr/share/nginx/html:ro
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./sw.js:/usr/share/nginx/html/sw.js:ro
+      - ./manifest.json:/usr/share/nginx/html/manifest.json:ro
+    restart: unless-stopped
