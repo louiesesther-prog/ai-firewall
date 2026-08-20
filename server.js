@@ -39,7 +39,7 @@ function createAuthMiddleware(apiKey) {
   if (!apiKey) return (req, res, next) => next();
   return (req, res, next) => {
     if (req.method === 'OPTIONS') return next();
-    const provided = req.headers['x-api-key'] || req.query.api_key;
+    const provided = req.headers['x-api-key'];
     if (!provided || provided !== apiKey) {
       return res.status(401).json({ error: 'Unauthorized. Provide X-API-Key header.' });
     }

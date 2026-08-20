@@ -721,7 +721,8 @@ function updateHighlight() {
                     }
                 }
                 const cls = rule.id + (conf < 0.5 ? ' low-conf' : '');
-                return '<mark class="' + cls + '">' + m + '</mark>';
+                const safe = m.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                return '<mark class="' + cls + '">' + safe + '</mark>';
             });
         } catch(e) {}
     }

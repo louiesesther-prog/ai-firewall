@@ -95,7 +95,7 @@ function resolveRules(config, profile, pluginRules) {
   return rules;
 }
 
-function getCustomFakers(config) {
+function getCustomFakers(config, allowUnsafe) {
   const fakers = {};
   if (config && config.customRules && config.customRules.length) {
     for (const cr of config.customRules) {
@@ -105,10 +105,15 @@ function getCustomFakers(config) {
           if (typeof cr.faker === 'function') {
             fakers[label] = cr.faker;
           } else if (typeof cr.faker === 'string') {
-            const fn = new Function('return ' + cr.faker)();
-            if (typeof fn === 'function') {
-              console.warn('WARNING: String-based faker for "' + (cr.id || 'unknown') + '" executes arbitrary code. Use a function reference instead.');
-              fakers[label] = fn;
+            if (!allowUnsafe) {
+              console.error('Skipping string-based faker for "' + (cr.id || 'unknown') + '": requires --unsafe flag (executes arbitrary code)');
+              fakers[label] = () => '[FAKE_' + label + ']';
+            } else {
+              const fn = new Function('return ' + cr.faker)();
+              if (typeof fn === 'function') {
+                console.warn('WARNING: String-based faker for "' + (cr.id || 'unknown') + '" executes arbitrary code.');
+                fakers[label] = fn;
+              }
             }
           }
         } catch (e) {
@@ -643,22 +648,26 @@ ${body}
 
 // ── ENCRYPT MODE ─────────────────────────────────────────────────
 function encryptValue(text, key) {
+  const salt = crypto.randomBytes(32);
+  const derived = crypto.pbkdf2Sync(key, salt, 100000, 32, 'sha256');
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const cipher = crypto.createCipheriv('aes-256-gcm', derived, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag().toString('hex');
-  return iv.toString('hex') + ':' + authTag + ':' + encrypted;
+  return salt.toString('hex') + ':' + iv.toString('hex') + ':' + authTag + ':' + encrypted;
 }
 
 function decryptValue(encoded, key) {
   try {
     const parts = encoded.split(':');
-    if (parts.length !== 3) return null;
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    if (parts.length !== 4) return null;
+    const salt = Buffer.from(parts[0], 'hex');
+    const iv = Buffer.from(parts[1], 'hex');
+    const authTag = Buffer.from(parts[2], 'hex');
+    const encrypted = parts[3];
+    const derived = crypto.pbkdf2Sync(key, salt, 100000, 32, 'sha256');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', derived, iv);
     decipher.setAuthTag(authTag);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
@@ -669,8 +678,7 @@ function decryptValue(encoded, key) {
 }
 
 function deriveKey(passphrase) {
-  const salt = crypto.createHash('sha256').update('ai-firewall-salt-v2').digest();
-  return crypto.pbkdf2Sync(passphrase, salt, 100000, 32, 'sha256');
+  return crypto.pbkdf2Sync(passphrase, 'legacy-context', 100000, 32, 'sha256');
 }
 
 // ── WATCH MODE ────────────────────────────────────────────────────
@@ -726,6 +734,7 @@ Scrub Options (default command when piping text):
   --risk                 Show risk score
   --summary              Show summary only (scan command)
   --profile <name>       Compliance profile: none (default), gdpr, hipaa, pci-dss, ccpa
+  --unsafe               Allow string-based custom fakers (executes arbitrary code)
 
 Scan Options:
   --config, -c <path>    Path to .ai-firewallrc config
@@ -917,6 +926,7 @@ async function main() {
     let reportPath = null;
     let profile = 'none';
     let ocrMode = false;
+    let unsafeMode = false;
     const pluginPaths = [];
 
     for (let i = 1; i < args.length; i++) {
@@ -933,6 +943,7 @@ async function main() {
         case '--summary': summaryOnly = true; break;
         case '--profile': profile = args[++i] || 'none'; break;
         case '--ocr': ocrMode = true; break;
+        case '--unsafe': unsafeMode = true; break;
         case '--plugin': pluginPaths.push(args[++i]); break;
         default:
           if (!args[i].startsWith('-')) scanTarget = args[i];
@@ -943,7 +954,7 @@ async function main() {
     const configPluginPaths = (config && config.plugins && Array.isArray(config.plugins)) ? config.plugins : [];
     const plugins = loadPlugins([...configPluginPaths, ...pluginPaths]);
     const configRules = resolveRules(config, profile, plugins.rules);
-    const customFakers = Object.assign({}, getCustomFakers(config), plugins.fakers);
+    const customFakers = Object.assign({}, getCustomFakers(config, unsafeMode), plugins.fakers);
     const encKey = encryptMode && encryptKey ? deriveKey(encryptKey) : null;
 
     // ── --progress scan ─────────────────────────────────────
@@ -1216,6 +1227,7 @@ async function main() {
   let showRisk = false;
   let configPath = null;
   let profile = 'none';
+  let unsafeMode = false;
   const pluginPaths = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -1227,6 +1239,7 @@ async function main() {
       case '--config': case '-c': configPath = args[++i]; break;
       case '--risk': showRisk = true; break;
       case '--profile': profile = args[++i] || 'none'; break;
+      case '--unsafe': unsafeMode = true; break;
       case '--plugin': pluginPaths.push(args[++i]); break;
     }
   }
@@ -1235,7 +1248,7 @@ async function main() {
   const configPluginPaths = (config && config.plugins && Array.isArray(config.plugins)) ? config.plugins : [];
   const plugins = loadPlugins([...configPluginPaths, ...pluginPaths]);
   const configRules = resolveRules(config, profile, plugins.rules);
-  const customFakers = Object.assign({}, getCustomFakers(config), plugins.fakers);
+  const customFakers = Object.assign({}, getCustomFakers(config, unsafeMode), plugins.fakers);
 
   function processText(input) {
     const result = scrub(input, { mode, rules: configRules, fakers: customFakers });

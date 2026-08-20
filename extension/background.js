@@ -319,7 +319,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse(vpnStatus());
       break;
     case 'VPN_SET':
-      vpnConfig = Object.assign({}, vpnConfig, msg.config);
+      if (msg.config) {
+        const allowedProtocols = ['http', 'https', 'socks4', 'socks5'];
+        const safeConfig = {};
+        if (msg.config.enabled !== undefined) safeConfig.enabled = !!msg.config.enabled;
+        if (msg.config.leakProtect !== undefined) safeConfig.leakProtect = !!msg.config.leakProtect;
+        if (typeof msg.config.host === 'string' && /^[a-zA-Z0-9._-]+$/.test(msg.config.host)) {
+          safeConfig.host = msg.config.host.substring(0, 255);
+        }
+        if (typeof msg.config.port === 'number' && msg.config.port >= 1 && msg.config.port <= 65535) {
+          safeConfig.port = msg.config.port;
+        }
+        if (allowedProtocols.includes(msg.config.protocol)) {
+          safeConfig.protocol = msg.config.protocol;
+        }
+        vpnConfig = Object.assign({}, vpnConfig, safeConfig);
+      }
       applyVpn(() => sendResponse(vpnStatus()));
       break;
     case 'VPN_TOGGLE':
