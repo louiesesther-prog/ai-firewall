@@ -37,10 +37,12 @@ function createRateLimiter({ windowMs = 60000, max = 60 } = {}) {
 // ── API KEY AUTH (optional, via AI_FIREWALL_API_KEY env var) ──────
 function createAuthMiddleware(apiKey) {
   if (!apiKey) return (req, res, next) => next();
+  const keyBuf = Buffer.from(apiKey);
   return (req, res, next) => {
     if (req.method === 'OPTIONS') return next();
     const provided = req.headers['x-api-key'];
-    if (!provided || provided !== apiKey) {
+    const provBuf = Buffer.from(provided || '');
+    if (provBuf.length !== keyBuf.length || !crypto.timingSafeEqual(provBuf, keyBuf)) {
       return res.status(401).json({ error: 'Unauthorized. Provide X-API-Key header.' });
     }
     next();

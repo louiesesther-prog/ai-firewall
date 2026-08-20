@@ -1,34 +1,41 @@
 const PII_RULES = [
-  { id:'crypto',  name:'Crypto Wallet',   label:'CRYPTO',   regex:/0x[a-fA-F0-9]{40}/g,                       conf:0.95 },
-  { id:'mac',     name:'MAC Address',     label:'MAC_ADDR', regex:/[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}/g, conf:0.95 },
-  { id:'cc',      name:'Credit Card',     label:'CC_NUM',   regex:/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, conf:0.9, luhn:true },
-  { id:'ssn',     name:'SSN',             label:'SSN_NUM',  regex:/\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,            conf:0.85 },
-  { id:'apikey',  name:'API Key',         label:'APIKEY',   regex:/(?:api[_-]?key|api key)[=:\s]+\S+/gi,         conf:0.85 },
-  { id:'pwd',     name:'Password',        label:'PWD_VAL',  regex:/(?:password|passwd|pass)[=:\s]+\S+/gi,        conf:0.8 },
-  { id:'dob',     name:'Date of Birth',   label:'DOB',      regex:/(?:DOB|date\s*of\s*birth|birth\s*date)[=:\s]*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/gi, conf:0.9 },
-  { id:'passport',name:'Passport',        label:'PASSPORT', regex:/\b[A-Z]\d{8}\b/g,                             conf:0.85 },
-  { id:'phone',   name:'Phone Number',    label:'PHONE_NUM',regex:/\b(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, conf:0.8 },
-  { id:'ip',      name:'IP Address',      label:'IP_ADDR',  regex:/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,   conf:0.65 },
-  { id:'routing', name:'Routing Number',  label:'ROUTING',  regex:/\b\d{9}\b/g,                                  conf:0.4 },
-  { id:'email',   name:'Email Address',   label:'EMAIL_ADDR',regex:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, conf:0.95 },
-  { id:'license', name:'Driver License',  label:'LICENSE',  regex:/(?:driver'?s?\s*license|driver'?s?\s*lic|dl|license)[=:\s]*[A-Z0-9]{5,14}/gi, conf:0.7 },
-  { id:'address', name:'Street Address',  label:'ADDRESS',  regex:/\b\d{1,5}\s+[\w\s]{2,}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Circle|Cir|Place|Pl)\.?\b/gi, conf:0.6 },
-  { id:'bank',    name:'Bank Account',    label:'BANK_ACCT',regex:/(?:account|acct|acc)\s*(?:#|number|num|no)?[=:\s]+\d{5,17}/gi, conf:0.7 },
-  { id:'uk-ni',   name:'UK National Insurance', label:'UK_NI', regex:/\b[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-Z]\b/gi, conf:0.85 },
-  { id:'uk-nhs',  name:'UK NHS Number',          label:'UK_NHS', regex:/\b\d{3}\s?\d{3}\s?\d{4}\b/g, conf:0.7 },
-  { id:'in-aadhaar',name:'India Aadhaar',        label:'IN_AADHAAR', regex:/\b\d{4}\s?\d{4}\s?\d{4}\b/g, conf:0.85 },
-  { id:'in-pan',  name:'India PAN',              label:'IN_PAN', regex:/\b[A-Z]{5}\d{4}[A-Z]\b/gi, conf:0.9 },
-  { id:'cn-id',   name:'China ID (18位)',        label:'CN_ID', regex:/\b\d{6}\d{8}[\dXx]\b/g, conf:0.85 },
-  { id:'ca-sin',  name:'Canada SIN',             label:'CA_SIN', regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g, conf:0.7 },
-  { id:'jwt',     name:'JWT Token',           label:'JWT',      regex:/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, conf:0.95 },
-  { id:'aws-key', name:'AWS Access Key',      label:'AWS_KEY',  regex:/\bAKIA[0-9A-Z]{16}\b/g,                          conf:0.95 },
-  { id:'github',  name:'GitHub Token',        label:'GITHUB',   regex:/\b(?:ghp_|gho_|ghu_|ghs_|ghr_)[a-zA-Z0-9]{36}\b/g, conf:0.95 },
-  { id:'slack',   name:'Slack Token',         label:'SLACK',    regex:/\bxox[baprs]-[a-zA-Z0-9-]{10,}\b/g,               conf:0.95 },
-  { id:'au-tfn',  name:'Australia TFN',       label:'AU_TFN',   regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g,                     conf:0.4 },
-  { id:'jp-my',   name:'Japan My Number',     label:'JP_MY',    regex:/\b\d{4}-\d{4}-\d{4}\b/g,                          conf:0.85 },
-  { id:'br-cpf',  name:'Brazil CPF',          label:'BR_CPF',   regex:/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,              conf:0.8 },
-  { id:'br-cnpj', name:'Brazil CNPJ',         label:'BR_CNPJ',  regex:/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,      conf:0.85 },
-  { id:'fr-insee',name:'France INSEE',        label:'FR_INSEE', regex:/\b\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\b/g, conf:0.7 },
+  { id:'crypto', name:'Crypto Wallet', label:'CRYPTO', regex:/0x[a-fA-F0-9]{40}/g, conf:0.95 },
+  { id:'mac', name:'MAC Address', label:'MAC_ADDR', regex:/[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}/g, conf:0.95 },
+  { id:'cc', name:'Credit Card', label:'CC_NUM', regex:/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, conf:0.9, luhn:true },
+  { id:'ssn', name:'SSN', label:'SSN_NUM', regex:/\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g, conf:0.85 },
+  { id:'apikey', name:'API Key', label:'APIKEY', regex:/(?:api[_-]?key|api key)[=:\s]+\S+/gi, conf:0.85 },
+  { id:'pwd', name:'Password', label:'PWD_VAL', regex:/(?:password|passwd|pass)[=:\s]+\S+/gi, conf:0.8 },
+  { id:'dob', name:'Date of Birth', label:'DOB', regex:/(?:DOB|date\s*of\s*birth|birth\s*date)[=:\s]*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/gi, conf:0.9 },
+  { id:'de-id', name:'Germany Personalausweis', label:'DE_ID', regex:/\b[A-Z]\d{8}\b/g, conf:0.8 },
+  { id:'passport', name:'Passport', label:'PASSPORT', regex:/\b[A-Z]\d{8}\b/g, conf:0.85 },
+  { id:'phone', name:'Phone Number', label:'PHONE_NUM', regex:/\b(?:\+1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, conf:0.8 },
+  { id:'ip', name:'IP Address', label:'IP_ADDR', regex:/(?<!\b[vV]ersion\s)\b(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\b/g, conf:0.65 },
+  { id:'routing', name:'Routing Number', label:'ROUTING', regex:/\b\d{9}\b/g, conf:0.4 },
+  { id:'email', name:'Email Address', label:'EMAIL_ADDR', regex:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, conf:0.95 },
+  { id:'license', name:'Driver License', label:'LICENSE', regex:/(?:driver'?s?\s*license|dl|license)[=:\s]*[A-Z0-9]{5,14}/gi, conf:0.7 },
+  { id:'address', name:'Street Address', label:'ADDRESS', regex:/\b\d{1,5}\s+(?:[\w]\s?){0,25}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Circle|Cir|Place|Pl)\.?\b/gi, conf:0.6 },
+  { id:'bank', name:'Bank Account', label:'BANK_ACCT', regex:/(?:account|acct|acc)\s*(?:#|number|num|no)?[=:\s]+\d{5,17}/gi, conf:0.7 },
+  { id:'uk-ni', name:'UK National Insurance', label:'UK_NI', regex:/\b[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-Z]\b/gi, conf:0.85 },
+  { id:'uk-nhs', name:'UK NHS Number', label:'UK_NHS', regex:/\b\d{3}\s?\d{3}\s?\d{4}\b/g, conf:0.7 },
+  { id:'in-aadhaar', name:'India Aadhaar', label:'IN_AADHAAR', regex:/\b\d{4}\s?\d{4}\s?\d{4}\b/g, conf:0.85 },
+  { id:'in-pan', name:'India PAN', label:'IN_PAN', regex:/\b[A-Z]{5}\d{4}[A-Z]\b/gi, conf:0.9 },
+  { id:'cn-id', name:'China ID (18位)', label:'CN_ID', regex:/\b\d{6}\d{8}\d{3}[\dXx]\b/g, conf:0.85 },
+  { id:'ca-sin', name:'Canada SIN', label:'CA_SIN', regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g, conf:0.7 },
+  { id:'jwt', name:'JWT Token', label:'JWT', regex:/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, conf:0.95 },
+  { id:'aws-key', name:'AWS Access Key', label:'AWS_KEY', regex:/\bAKIA[0-9A-Z]{16}\b/g, conf:0.95 },
+  { id:'github', name:'GitHub Token', label:'GITHUB', regex:/\b(?:ghp_|gho_|ghu_|ghs_|ghr_)[a-zA-Z0-9]{36}\b/g, conf:0.95 },
+  { id:'slack', name:'Slack Token', label:'SLACK', regex:/\bxox[baprs]-[a-zA-Z0-9-]{10,}\b/g, conf:0.95 },
+  { id:'au-tfn', name:'Australia TFN', label:'AU_TFN', regex:/\b\d{3}\s?\d{3}\s?\d{3}\b/g, conf:0.4 },
+  { id:'jp-my', name:'Japan My Number', label:'JP_MY', regex:/\b\d{4}-\d{4}-\d{4}\b/g, conf:0.85 },
+  { id:'br-cpf', name:'Brazil CPF', label:'BR_CPF', regex:/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, conf:0.8 },
+  { id:'br-cnpj', name:'Brazil CNPJ', label:'BR_CNPJ', regex:/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, conf:0.85 },
+  { id:'fr-insee', name:'France INSEE', label:'FR_INSEE', regex:/\b\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\b/g, conf:0.7 },
+  { id:'de-tax', name:'Germany Tax ID (Steuernummer)', label:'DE_TAX', regex:/(?<!\+)(?<!\d)\b\d{2,3}\s\d{3,4}\s\d{3,4}(\s\d{1,2})?\b/g, conf:0.4 },
+  { id:'kr-rrn', name:'Korea Resident Registration', label:'KR_RRN', regex:/\b\d{6}-[1-4]\d{6}\b/g, conf:0.9 },
+  { id:'mx-curp', name:'Mexico CURP', label:'MX_CURP', regex:/\b[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d\b/g, conf:0.95 },
+  { id:'mx-rfc', name:'Mexico RFC', label:'MX_RFC', regex:/\b[A-Z&]{3,4}\d{6}[A-Z0-9]{3}\b/g, conf:0.85 },
+  { id:'se-pn', name:'Sweden Personnummer', label:'SE_PN', regex:/\b\d{6}[-+]\d{4}\b/g, conf:0.8 },
+  { id:'it-cf', name:'Italy Codice Fiscale', label:'IT_CF', regex:/\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/g, conf:0.95 }
 ];
 
 const FAKERS = {
@@ -62,6 +69,14 @@ const FAKERS = {
   BR_CPF: () => Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
   BR_CNPJ: () => Math.floor(Math.random() * 100).toString().padStart(2,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '/' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
   FR_INSEE: () => Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 1000).toString().padStart(3,'0'),
+  PERSON_NAME: () => ['John Smith','Jane Doe','Alex Johnson','Sam Wilson','Taylor Brown'][Math.floor(Math.random() * 5)],
+  DE_ID: () => String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
+  DE_TAX: () => Math.floor(Math.random() * 300).toString().padStart(3,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
+  KR_RRN: () => Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + '-' + (Math.floor(Math.random() * 4) + 1) + Math.floor(Math.random() * 1000000).toString().padStart(6,'0'),
+  MX_CURP: () => { const c = 'AEIOU'; const v = 'AEIOU'; const letters = Array(4).fill(0).map(() => c[Math.floor(Math.random() * c.length)]).join(''); const consonants = Array(5).fill(0).map(() => 'BCDFGHJKLMNPQRSTVWXYZ'[Math.floor(Math.random() * 21)]).join(''); return letters + Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + (Math.random() > 0.5 ? 'H' : 'M') + consonants + '0' + Math.floor(Math.random() * 10).toString(); },
+  MX_RFC: () => { const c = 'AEIOUX'; const letters = Array(3).fill(0).map(() => c[Math.floor(Math.random() * c.length)]).join(''); const letters4 = letters[0] + Array(3).fill(0).map(() => 'AEIOUX'[Math.floor(Math.random() * 6)]).join(''); const use4 = Math.random() > 0.5; return (use4 ? letters4 : letters) + Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + Array(3).fill(0).map(() => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]).join(''); },
+  SE_PN: () => Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
+  IT_CF: () => { const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; const letters = Array(6).fill(0).map(() => c[Math.floor(Math.random() * 26)]).join(''); return letters + Math.floor(Math.random() * 100).toString().padStart(2,'0') + c[Math.floor(Math.random() * 26)] + Math.floor(Math.random() * 100).toString().padStart(2,'0') + c[Math.floor(Math.random() * 26)] + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + c[Math.floor(Math.random() * 26)]; }
 };
 
 function fakeFor(label) { const fn = FAKERS[label]; return fn ? fn() : '[FAKE_' + label + ']'; }
@@ -187,7 +202,7 @@ function scrub(text) {
 
       piiMap[replacement] = raw;
       allMatches.push({ type: rule.label, original: raw, placeholder: replacement, confidence: conf, name: rule.name });
-      scrubbed = scrubbed.replace(raw, replacement);
+      scrubbed = scrubbed.split(raw).join(replacement);
 
       if (!detectedTypes.includes(rule.label)) detectedTypes.push(rule.label);
       stats.piiDetected++;
@@ -249,7 +264,22 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse(vpnStatus());
       break;
     case 'VPN_SET':
-      vpnConfig = Object.assign({}, vpnConfig, msg.config);
+      if (msg.config) {
+        const allowedProtocols = ['http', 'https', 'socks4', 'socks5'];
+        const safeConfig = {};
+        if (msg.config.enabled !== undefined) safeConfig.enabled = !!msg.config.enabled;
+        if (msg.config.leakProtect !== undefined) safeConfig.leakProtect = !!msg.config.leakProtect;
+        if (typeof msg.config.host === 'string' && /^[a-zA-Z0-9._-]+$/.test(msg.config.host)) {
+          safeConfig.host = msg.config.host.substring(0, 255);
+        }
+        if (typeof msg.config.port === 'number' && msg.config.port >= 1 && msg.config.port <= 65535) {
+          safeConfig.port = msg.config.port;
+        }
+        if (allowedProtocols.includes(msg.config.protocol)) {
+          safeConfig.protocol = msg.config.protocol;
+        }
+        vpnConfig = Object.assign({}, vpnConfig, safeConfig);
+      }
       applyVpn();
       sendResponse(vpnStatus());
       break;

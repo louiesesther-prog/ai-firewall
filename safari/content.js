@@ -183,7 +183,7 @@ async function interceptInput() {
   if (currentValue.length > 10) {
     try {
       const response = await browser.runtime.sendMessage({ type: 'SCRUB', text: currentValue });
-      if (response && response.piiCount > 0) {
+      if (response && response.matches && response.matches.length > 0) {
         playSound('detect');
         
         const maskedTypes = Object.keys(response.map).map(k => {
@@ -191,7 +191,7 @@ async function interceptInput() {
           return match ? match[1] : k;
         });
         
-        showNotification(`🛡️ ${response.piiCount} PII item(s) masked`, 'warning', maskedTypes);
+        showNotification(`🛡️ ${response.matches.length} PII item(s) masked`, 'warning', maskedTypes);
       }
     } catch (e) {
       console.log('AI Firewall: Content script error', e);
@@ -221,11 +221,11 @@ function setupInterceptor() {
       if (text.trim()) {
         try {
           const response = await browser.runtime.sendMessage({ type: 'SCRUB', text });
-          if (response && response.piiCount > 0) {
-            inputElement.value = response.scrubbed;
-            lastValue = response.scrubbed;
+          if (response && response.matches && response.matches.length > 0) {
+            inputElement.value = response.text;
+            lastValue = response.text;
             playSound('send');
-            showNotification(`✅ Sent with ${response.piiCount} masked PII item(s)`, 'success');
+            showNotification(`✅ Sent with ${response.matches.length} masked PII item(s)`, 'success');
           }
         } catch (e) {
           console.log('AI Firewall: Click handler error', e);

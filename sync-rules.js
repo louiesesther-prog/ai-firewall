@@ -129,6 +129,28 @@ function updateIndexHTML() {
   console.log('  Updated index.html (' + rules.BUILTIN_RULES.length + ' rules)');
 }
 
+// ── Update firefox/background.js, edge/background.js, safari/background.js ──
+function updateBrowserBackground(dirName) {
+  const filePath = path.join(ROOT, dirName, 'background.js');
+  if (!fs.existsSync(filePath)) { console.log('  Skipped ' + dirName + '/background.js (not found)'); return; }
+  let content = fs.readFileSync(filePath, 'utf8');
+  const browserRules = generateBrowserRules();
+  const browserFakers = generateBrowserFakers();
+
+  const rulesMatch = content.match(/const PII_RULES = \[[\s\S]*?\];/);
+  if (rulesMatch) {
+    content = content.replace(rulesMatch[0], 'const PII_RULES = ' + browserRules + ';');
+  }
+
+  const fakersMatch = content.match(/const FAKERS = \{[\s\S]*?\};/);
+  if (fakersMatch) {
+    content = content.replace(fakersMatch[0], 'const FAKERS = ' + browserFakers + ';');
+  }
+
+  fs.writeFileSync(filePath, content, 'utf8');
+  console.log('  Updated ' + dirName + '/background.js (' + rules.BUILTIN_RULES.length + ' rules)');
+}
+
 // ── Main ──
 console.log('Syncing rules from rules.cjs to all surfaces...');
 console.log('  Rules: ' + rules.BUILTIN_RULES.length + ' PII types');
@@ -139,5 +161,8 @@ try { updateContentJS(); } catch (e) { console.error('  Error updating content.j
 try { updateBackgroundJS(); } catch (e) { console.error('  Error updating background.js:', e.message); }
 try { updateVSCodeExtension(); } catch (e) { console.error('  Error updating VS Code extension:', e.message); }
 try { updateIndexHTML(); } catch (e) { console.error('  Error updating index.html:', e.message); }
+try { updateBrowserBackground('firefox'); } catch (e) { console.error('  Error updating firefox/background.js:', e.message); }
+try { updateBrowserBackground('edge'); } catch (e) { console.error('  Error updating edge/background.js:', e.message); }
+try { updateBrowserBackground('safari'); } catch (e) { console.error('  Error updating safari/background.js:', e.message); }
 
 console.log('\nDone. Run tests to verify: node test-report.mjs');
