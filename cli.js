@@ -162,7 +162,7 @@ function scrub(text, options = {}) {
         replacement = '[' + rule.label + '_' + counter + ']';
       }
 
-      matches.push({ type: rule.label, name: rule.name, original: raw, replacement, confidence: conf });
+      matches.push({ type: rule.label, name: rule.name, original: raw, replacement, confidence: conf, _index: match.index });
       result = result.split(raw).join(replacement);
       counter++;
     }

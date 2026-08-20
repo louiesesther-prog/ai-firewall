@@ -26,6 +26,10 @@ const PII_KEYWORDS = {
     boost: /\b(passport|travel|visa|immigration|boarding|flight|identity|id\s*doc)\b/i,
     boostAmount: 0.2,
   },
+  DE_ID: {
+    boost: /\b(personalausweis|ausweis|id[- ]?karte|deutsch|german)\b/i,
+    boostAmount: 0.15,
+  },
   LICENSE: {
     boost: /\b(driver|driving|license|dl|permit|vehicle|car|automobile)\b/i,
     boostAmount: 0.15,
@@ -35,7 +39,7 @@ const PII_KEYWORDS = {
     boostAmount: 0.15,
   },
   BANK_ACCT: {
-    boost: /\b(account|bank|wire|transfer|routing|swift|iban|iban|balance|checking|savings)\b/i,
+    boost: /\b(account|bank|wire|transfer|routing|swift|iban|balance|checking|savings)\b/i,
     boostAmount: 0.15,
   },
   DOB: {
@@ -52,6 +56,106 @@ const PII_KEYWORDS = {
   },
   CRYPTO: {
     boost: /\b(wallet|ethereum|eth|crypto|blockchain|defi|contract\s+address)\b/i,
+    boostAmount: 0.15,
+  },
+  MAC_ADDR: {
+    boost: /\b(mac|physical|hardware|ethernet|network|interface|ieee)\b/i,
+    boostAmount: 0.1,
+  },
+  IP_ADDR: {
+    boost: /\b(server|host|ip|dns|proxy|remote|source|destination|addr|endpoint)\b/i,
+    boostAmount: 0.1,
+  },
+  ROUTING: {
+    boost: /\b(routing|aba|wire|transfer|bank|swift|bic)\b/i,
+    boostAmount: 0.15,
+  },
+  UK_NI: {
+    boost: /\b(national\s+insurance|ni\s+number|ni\s+no|hmrc|paye)\b/i,
+    boostAmount: 0.2,
+  },
+  UK_NHS: {
+    boost: /\b(nhs|patient|medical|health|hospital|gp|doctor|clinic)\b/i,
+    boostAmount: 0.2,
+  },
+  IN_AADHAAR: {
+    boost: /\b(aadhaar|aadhar|uidai|unique\s+id|aadhaar\s+number)\b/i,
+    boostAmount: 0.2,
+  },
+  IN_PAN: {
+    boost: /\b(pan|permanent\s+account|income\s+tax|it\s+return|pan\s+card)\b/i,
+    boostAmount: 0.2,
+  },
+  CN_ID: {
+    boost: /\b(\u8eab\u4efd\u8bc1|id\s+card|citizen|residence|\u5c45\u6c11\u8eab\u4efd\u8bc1)\b/i,
+    boostAmount: 0.15,
+  },
+  CA_SIN: {
+    boost: /\b(sin|social\s+insurance|canada|revenue|cra)\b/i,
+    boostAmount: 0.2,
+  },
+  AU_TFN: {
+    boost: /\b(tfn|tax\s+file|ato|australian|taxation)\b/i,
+    boostAmount: 0.2,
+  },
+  JP_MY: {
+    boost: /\b(my\s+number|\u30de\u30a4\u30ca\u30f3\u30d0\u30fc|tokyo|japan|\u756a\u53f7)\b/i,
+    boostAmount: 0.15,
+  },
+  BR_CPF: {
+    boost: /\b(cpf|cadastro|pessoa|f\u00edsica|brazil|receita)\b/i,
+    boostAmount: 0.15,
+  },
+  BR_CNPJ: {
+    boost: /\b(cnpj|empresa|cnpj\s+number|brazil|receita|federative)\b/i,
+    boostAmount: 0.15,
+  },
+  FR_INSEE: {
+    boost: /\b(insee|nir|num\u00e9ro\s+de\s+s\u00e9curit\u00e9|s\u00e9cu|france)\b/i,
+    boostAmount: 0.15,
+  },
+  DE_TAX: {
+    boost: /\b(steuernummer|steuer|tax\s+id|finanzamt|german\s+tax)\b/i,
+    boostAmount: 0.15,
+  },
+  KR_RRN: {
+    boost: /\b(\uc8fc\ubcfc\ubc88\ud638|\ub300\ud55c\ubbfc\uad6d|\uc8fc\ubcfc|\uc6d0\uad70|resident\s+registration)\b/i,
+    boostAmount: 0.15,
+  },
+  MX_CURP: {
+    boost: /\b(curp|ine|\u00eddenticula|mexico|clave)\b/i,
+    boostAmount: 0.15,
+  },
+  MX_RFC: {
+    boost: /\b(rfc|registro|federal|contribuyentes|mexico|taxpayer)\b/i,
+    boostAmount: 0.15,
+  },
+  SE_PN: {
+    boost: /\b(personnummer|person\s+number|swedish|sweden|personskod)\b/i,
+    boostAmount: 0.15,
+  },
+  IT_CF: {
+    boost: /\b(codice\s+fiscale|fiscale|italian|italy|partita\s+iva)\b/i,
+    boostAmount: 0.15,
+  },
+  JWT: {
+    boost: /\b(bearer|authorization|jwt|json\s+web\s+token|auth)\b/i,
+    boostAmount: 0.1,
+  },
+  AWS_KEY: {
+    boost: /\b(aws|amazon|access\s+key|iam|s3|ec2)\b/i,
+    boostAmount: 0.1,
+  },
+  GITHUB: {
+    boost: /\b(github|pat|personal\s+access\s+token|ghp_|gho_)\b/i,
+    boostAmount: 0.1,
+  },
+  SLACK: {
+    boost: /\b(slack|bot\s+token|xoxb|xoxp|workspace)\b/i,
+    boostAmount: 0.1,
+  },
+  PERSON_NAME: {
+    boost: /\b(name|patient|client|customer|applicant|person|contact|user)\b/i,
     boostAmount: 0.15,
   },
 };
@@ -132,11 +236,11 @@ function analyzeContext(rule, raw, idx, text) {
 }
 
 // Proximity scoring: nearby PII matches boost each other
-function proximityBoost(matches, currentMatch, windowSize = 100) {
+function proximityBoost(matches, currentIdx, windowSize = 100) {
   let boost = 0;
   for (const m of matches) {
-    if (m === currentMatch) continue;
-    const dist = Math.abs(m._index - currentMatch._index);
+    if (m._index === currentIdx) continue;
+    const dist = Math.abs(m._index - currentIdx);
     if (dist < windowSize) {
       boost += 0.05 * (1 - dist / windowSize);
     }
@@ -155,8 +259,7 @@ function contextScore(rule, raw, idx, text, baseConf, documentStats, existingMat
 
   // 2. Proximity boost from nearby PII
   if (existingMatches && existingMatches.length > 0) {
-    const currentMatch = { _index: idx, label: rule.label };
-    conf += proximityBoost(existingMatches, currentMatch);
+    conf += proximityBoost(existingMatches, idx);
   }
 
   // 3. Document-level adjustments
@@ -201,6 +304,7 @@ function detectMissingPII(text, documentStats) {
           line: (text.substring(0, m.index).match(/\n/g) || []).length + 1,
           column: m.index - text.lastIndexOf('\n', m.index - 1),
           _contextDetected: true,
+          _index: m.index,
         });
       }
     }
