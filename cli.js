@@ -720,6 +720,10 @@ Commands:
   ci [dir]               CI/CD scan — exits with code 1 if PII found above threshold
   watch <dir>            Watch directory for changes and report PII
   serve [port]           Start REST API server (default port: 3000)
+    --port, -p <port>    Port to listen on (default: 3000)
+    --config, -c <path>  Path to .ai-firewallrc config
+    --profile <name>     Compliance profile: none (default), gdpr, hipaa, pci-dss, ccpa
+    --analytics          Enable analytics dashboard & API
   bot                    Start Slack/Discord bot (--slack or --discord)
   init                   Create .ai-firewallrc config + pre-commit hook
   --help, -h             Show this help
@@ -991,7 +995,10 @@ async function main() {
           countFiles(scanTarget);
         } catch(e) {}
         console.log('Scanning ' + progressTotal + ' files...');
-        results = await scanDirAsync(scanTarget, config, profile, plugins, { ocr: ocrMode });
+        results = await scanDirAsync(scanTarget, config, profile, plugins, {
+          ocr: ocrMode,
+          onFile: function() { progressCount++; showProgressBar(); }
+        });
       } else {
         results = await scanDirAsync(scanTarget, config, profile, plugins, {
           ocr: ocrMode,

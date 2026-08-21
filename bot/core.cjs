@@ -1,11 +1,39 @@
 const { scrub, computeRiskScore } = require('../cli');
-const { BUILTIN_RULES } = require('../rules.cjs');
+const { BUILTIN_RULES, COMPLIANCE_PROFILES } = require('../rules.cjs');
+
+let trackScan = null;
+try { trackScan = require('../analytics/tracker').trackScan; } catch (e) { /* analytics optional */ }
 
 function scanText(text, options = {}) {
-  const rules = options.rules || BUILTIN_RULES;
+  let rules = options.rules || BUILTIN_RULES;
+  const profile = options.profile || 'none';
+  if (profile !== 'none' && COMPLIANCE_PROFILES[profile]) {
+    rules = rules.filter(r => COMPLIANCE_PROFILES[profile].includes(r.id));
+  }
   const result = scrub(text, { mode: 'placeholder', rules });
   const riskScore = computeRiskScore(result.matches);
-  return { ...result, riskScore };
+  const scanResult = { ...result, riskScore };
+  if (trackScan) {
+    try {
+      trackScan({
+        source: options.source || 'bot',
+        matches: scanResult.matches,
+        riskScore: scanResult.riskScore,
+        profile: profile,
+        metadata: { platform: options.platform || 'unknown' }
+      });
+    } catch (e) { /* don't let analytics failure break the bot */ }
+  }
+  return scanResult;
+}
+
+function scrubText(text, options = {}) {
+  let rules = options.rules || BUILTIN_RULES;
+  const profile = options.profile || 'none';
+  if (profile !== 'none' && COMPLIANCE_PROFILES[profile]) {
+    rules = rules.filter(r => COMPLIANCE_PROFILES[profile].includes(r.id));
+  }
+  return scrub(text, { mode: 'placeholder', rules });
 }
 
 function formatSlackMessage(result) {
@@ -63,4 +91,4 @@ function formatPlainText(result) {
   return out;
 }
 
-module.exports = { scanText, formatSlackMessage, formatDiscordEmbed, formatPlainText };
+module.exports = { scanText, scrubText, formatSlackMessage, formatDiscordEmbed, formatPlainText };

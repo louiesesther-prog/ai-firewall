@@ -114,16 +114,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   soundToggle.addEventListener('change', () => {
-    browser.runtime.sendMessage({ type: 'SET_SOUND', enabled: soundToggle.checked }).catch(() => {});
+    browser.storage.local.set({ enableSound: soundToggle.checked });
   });
 
   maskedTextToggle.addEventListener('change', () => {
-    browser.runtime.sendMessage({ type: 'SET_MASKED_TEXT', enabled: maskedTextToggle.checked }).catch(() => {});
+    browser.storage.local.set({ showMaskedText: maskedTextToggle.checked });
   });
 
   clearStats.addEventListener('click', (e) => {
     e.preventDefault();
-    browser.storage.local.clear();
+    browser.storage.local.set({ fw_stats: { requests: 0, piiDetected: 0, types: {} } });
     requestsCount.textContent = '0';
     piiCount.textContent = '0';
     piiList.innerHTML = '<div class="pii-item"><span class="pii-type">Statistics cleared</span></div>';

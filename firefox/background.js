@@ -84,6 +84,8 @@ function fakeFor(label) { const fn = FAKERS[label]; return fn ? fn() : '[FAKE_' 
 function luhnCheck(num) {
   const digits = num.replace(/\D/g, '');
   if (digits.length < 13 || digits.length > 19) return false;
+  const clean = num.replace(/[-\s]/g, '');
+  if (/^0+$/.test(clean)) return false;
   let sum = 0, alt = false;
   for (let i = digits.length - 1; i >= 0; i--) {
     let n = parseInt(digits[i], 10);

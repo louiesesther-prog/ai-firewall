@@ -22,42 +22,73 @@ function startDiscordBot(config) {
   });
 
   const PREFIX = config.prefix || '!';
+  const profile = config.profile || 'none';
 
   client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    if (message.content.startsWith(PREFIX + 'scan ')) {
-      const text = message.content.slice((PREFIX + 'scan ').length);
+    if (message.content === PREFIX + 'help') {
+      const embed = {
+        title: 'AI Firewall Bot Commands',
+        description: [
+          '`' + PREFIX + 'scan <text>` - Detect PII in text',
+          '`' + PREFIX + 'pii <text>` - Alias for scan',
+          '`' + PREFIX + 'scrub <text>` - Detect and return sanitized text',
+          '`' + PREFIX + 'help` - Show this message',
+          profile !== 'none' ? '*Compliance profile:* ' + profile : '',
+        ].filter(Boolean).join('\n'),
+        color: 0x6366f1,
+      };
+      return message.reply({ embeds: [embed] });
+    }
+
+    if (message.content.startsWith(PREFIX + 'scan ') || message.content.startsWith(PREFIX + 'pii ')) {
+      const prefixLen = message.content.startsWith(PREFIX + 'scan ') ? (PREFIX + 'scan ').length : (PREFIX + 'pii ').length;
+      const text = message.content.slice(prefixLen);
       if (!text.trim()) {
         return message.reply('Usage: ' + PREFIX + 'scan <text to check for PII>');
       }
-      const result = core.scanText(text);
-      const formatted = core.formatDiscordEmbed(result);
-      await message.reply(formatted);
-    }
-
-    if (message.content.startsWith(PREFIX + 'pii ')) {
-      const text = message.content.slice((PREFIX + 'pii ').length);
-      if (!text.trim()) {
-        return message.reply('Usage: ' + PREFIX + 'pii <text to check for PII>');
+      try {
+        const result = core.scanText(text, { profile, platform: 'discord' });
+        const formatted = core.formatDiscordEmbed(result);
+        await message.reply(formatted);
+      } catch (err) {
+        await message.reply(':x: Scan error: ' + err.message).catch(() => {});
       }
-      const result = core.scanText(text);
-      const formatted = core.formatDiscordEmbed(result);
-      await message.reply(formatted);
     }
 
-    if (config.scanChannels && config.scanChannels.length > 0) {
+    if (message.content.startsWith(PREFIX + 'scrub ')) {
+      const text = message.content.slice((PREFIX + 'scrub ').length);
+      if (!text.trim()) {
+        return message.reply('Usage: ' + PREFIX + 'scrub <text to sanitize>');
+      }
+      try {
+        const result = core.scrubText(text, { profile });
+        if (result.matches.length === 0) {
+          return message.reply(':white_check_mark: No PII detected. Text is safe.');
+        }
+        await message.reply(':soap: **Scrubbed text:**\n```\n' + result.scrubbed + '\n```');
+      } catch (err) {
+        await message.reply(':x: Scrub error: ' + err.message).catch(() => {});
+      }
+    }
+
+    if (config.autoScan !== false && config.scanChannels && config.scanChannels.length > 0) {
       const channelSet = new Set(config.scanChannels);
       if (channelSet.has(message.channel.id) && message.content.length > 10) {
-        const result = core.scanText(message.content);
-        if (result.matches.length > 0) {
-          const minConf = config.minConfidence || 0.7;
-          const highConfMatches = result.matches.filter(m => m.confidence >= minConf);
-          if (highConfMatches.length > 0) {
-            await message.reply({
-              content: ':warning: **PII detected** in your message (' + highConfMatches.length + ' high-confidence items). Please review before posting.',
-            });
+        try {
+          const result = core.scanText(message.content, { profile, platform: 'discord' });
+          if (result.matches.length > 0 && config.notifyOnPII !== false) {
+            const minConf = config.minConfidence || 0.7;
+            const highConfMatches = result.matches.filter(m => m.confidence >= minConf);
+            if (highConfMatches.length > 0) {
+              await message.reply({
+                content: ':warning: **PII detected** in your message (' + highConfMatches.length + ' high-confidence items). Please review before posting.',
+              });
+            }
           }
+        } catch (err) {
+          console.error('[AI Firewall Discord] Auto-scan error:', err.message);
         }
       }
     }
@@ -71,9 +102,13 @@ function startDiscordBot(config) {
       if (!text) {
         return interaction.reply({ content: 'Usage: /scan <text>', ephemeral: true });
       }
-      const result = core.scanText(text);
-      const formatted = core.formatDiscordEmbed(result);
-      await interaction.reply(formatted);
+      try {
+        const result = core.scanText(text, { profile, platform: 'discord' });
+        const formatted = core.formatDiscordEmbed(result);
+        await interaction.reply(formatted);
+      } catch (err) {
+        await interaction.reply({ content: ':x: Scan error: ' + err.message, ephemeral: true }).catch(() => {});
+      }
     }
   });
 

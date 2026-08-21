@@ -161,6 +161,8 @@ function restore(text, map) {
 let lastMap = {};
 
 function activate(context) {
+  const documentMaps = new Map();
+
   context.subscriptions.push(
     vscode.commands.registerCommand('ai-firewall.scrubSelection', () => {
       const editor = vscode.window.activeTextEditor;
@@ -172,6 +174,8 @@ function activate(context) {
       const mode = config.get('maskMode', 'placeholder');
       const result = scrub(text, mode);
       editor.edit(editBuilder => editBuilder.replace(selection, result.scrubbed));
+      const docKey = editor.document.uri.toString();
+      documentMaps.set(docKey, result.map);
       lastMap = result.map;
       if (result.matches.length > 0) {
         vscode.window.showInformationMessage('AI Firewall: Masked ' + result.matches.length + ' PII items');
@@ -192,6 +196,8 @@ function activate(context) {
       const result = scrub(text, mode);
       const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
       editor.edit(editBuilder => editBuilder.replace(fullRange, result.scrubbed));
+      const docKey = editor.document.uri.toString();
+      documentMaps.set(docKey, result.map);
       lastMap = result.map;
       vscode.window.showInformationMessage('AI Firewall: Document scrubbed (' + result.matches.length + ' PII items masked)');
     })
@@ -200,14 +206,18 @@ function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand('ai-firewall.restoreDocument', () => {
       const editor = vscode.window.activeTextEditor;
-      if (!editor || Object.keys(lastMap).length === 0) {
+      if (!editor) return;
+      const docKey = editor.document.uri.toString();
+      const map = documentMaps.get(docKey) || lastMap;
+      if (!map || Object.keys(map).length === 0) {
         vscode.window.showInformationMessage('No PII to restore.');
         return;
       }
       const text = editor.document.getText();
-      const restored = restore(text, lastMap);
+      const restored = restore(text, map);
       const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
       editor.edit(editBuilder => editBuilder.replace(fullRange, restored));
+      documentMaps.delete(docKey);
       lastMap = {};
       vscode.window.showInformationMessage('AI Firewall: Original text restored.');
     })
@@ -220,6 +230,15 @@ function activate(context) {
       const next = current === 'placeholder' ? 'realistic' : 'placeholder';
       config.update('maskMode', next, vscode.ConfigurationTarget.Global);
       vscode.window.showInformationMessage('AI Firewall: Mask mode set to "' + next + '"');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidCloseTextDocument(document => {
+      const docKey = document.uri.toString();
+      if (documentMaps.has(docKey)) {
+        documentMaps.delete(docKey);
+      }
     })
   );
 

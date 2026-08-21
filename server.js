@@ -159,6 +159,7 @@ function createApp(configOpts = {}) {
         } catch (e) { /* non-blocking */ }
       }
     } catch (err) {
+      console.error('[/scrub] Error:', err.message);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
@@ -215,6 +216,7 @@ function createApp(configOpts = {}) {
         } catch (e) { /* non-blocking */ }
       }
     } catch (err) {
+      console.error('[/scan] Error:', err.message);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
@@ -243,7 +245,10 @@ function createApp(configOpts = {}) {
         }
       }
       res.json({ changes, changesFound: changes.length, matches: result.matches });
-    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
+    } catch (err) {
+      console.error('[/diff] Error:', err.message);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.post('/encrypt', (req, res) => {
@@ -268,7 +273,10 @@ function createApp(configOpts = {}) {
         result = result.replace(re, (m) => { count++; return '[ENC:' + encryptValue(m, key) + ']'; });
       }
       res.json({ encrypted: result, itemsEncrypted: count });
-    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
+    } catch (err) {
+      console.error('[/encrypt] Error:', err.message);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.post('/decrypt', (req, res) => {
@@ -286,7 +294,10 @@ function createApp(configOpts = {}) {
         return '[DECRYPT_FAILED]';
       });
       res.json({ decrypted, tokensRestored: restored });
-    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
+    } catch (err) {
+      console.error('[/decrypt] Error:', err.message);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.get('/', (req, res) => {
@@ -561,7 +572,16 @@ setInterval(loadHealth, 5000);
     const boundary = '--' + boundaryMatch[1].trim();
 
     const chunks = [];
-    req.on('data', (chunk) => chunks.push(chunk));
+    const MAX_UPLOAD = 5 * 1024 * 1024; // 5MB
+    let totalSize = 0;
+    req.on('data', (chunk) => {
+      totalSize += chunk.length;
+      if (totalSize > MAX_UPLOAD) {
+        req.destroy();
+        return res.status(413).json({ error: 'File too large. Maximum 5MB.' });
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => {
       try {
         const raw = Buffer.concat(chunks).toString('utf8');
