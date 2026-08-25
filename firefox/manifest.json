@@ -21,7 +21,10 @@
     "activeTab",
     "storage",
     "proxy",
-    "privacy"
+    "privacy",
+    "webRequest",
+    "webRequestBlocking",
+    "cookies"
   ],
   "host_permissions": [
     "http://127.0.0.1/*",

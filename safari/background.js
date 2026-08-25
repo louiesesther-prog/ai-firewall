@@ -167,6 +167,35 @@ function vpnStatus() {
   };
 }
 
+// ── Cookie Blocking on AI Domains (Safari: no webRequestBlocking) ──
+let blockCookies = true;
+
+function isAiUrl(url) {
+  try {
+    const h = new URL(url).hostname;
+    return AI_DOMAINS.some(d => h === d || h.endsWith('.' + d));
+  } catch (e) { return false; }
+}
+
+function clearAiCookies() {
+  if (!blockCookies || !isEnabled) return;
+  AI_DOMAINS.forEach(domain => {
+    try {
+      browser.cookies.getAll({ domain }).then(cookies => {
+        cookies.forEach(c => {
+          browser.cookies.remove({ url: 'https://' + domain + c.path, name: c.name });
+        });
+      });
+    } catch (e) {}
+  });
+}
+
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'loading' && tab.url && isAiUrl(tab.url)) {
+    clearAiCookies();
+  }
+});
+
 browser.storage.local.get(['vpnConfig']).then((res) => {
   if (res.vpnConfig) vpnConfig = Object.assign({}, vpnConfig, res.vpnConfig);
   applyVpn();
@@ -290,15 +319,26 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       applyVpn();
       sendResponse(vpnStatus());
       break;
+    case 'BLOCK_COOKIES_GET':
+      sendResponse({ blockCookies });
+      break;
+    case 'BLOCK_COOKIES_SET':
+      blockCookies = !!msg.enabled;
+      browser.storage.local.set({ blockCookies });
+      if (blockCookies) clearAiCookies();
+      sendResponse({ blockCookies });
+      break;
     default:
       sendResponse({ error: 'Unknown message type' });
   }
   return true;
 });
 
-browser.storage.local.get(['isEnabled', 'maskMode']).then((result) => {
+browser.storage.local.get(['isEnabled', 'maskMode', 'blockCookies']).then((result) => {
   if (result.isEnabled !== undefined) isEnabled = result.isEnabled;
   if (result.maskMode !== undefined) maskMode = result.maskMode;
+  if (result.blockCookies !== undefined) blockCookies = result.blockCookies;
+  if (blockCookies) clearAiCookies();
 });
 
-console.log('[AI Firewall] Safari background loaded (' + PII_RULES.length + ' PII types, Luhn, confidence)');
+console.log('[AI Firewall] Safari background loaded (' + PII_RULES.length + ' PII types, cookie blocking)');

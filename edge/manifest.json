@@ -5,7 +5,7 @@
   "description": "Detect and mask 30+ PII types in AI chat apps. 100% local with confidence scoring and Luhn validation.",
   "homepage_url": "https://github.com/louiesesther-prog/ai-firewall",
   "support_url": "https://ai-firewall.org/support.html",
-  "permissions": ["storage", "proxy", "privacy", "scripting"],
+  "permissions": ["storage", "proxy", "privacy", "scripting", "webRequest", "webRequestBlocking", "cookies"],
   "host_permissions": [
     "http://127.0.0.1/*",
     "http://localhost/*",

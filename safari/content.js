@@ -1,3 +1,20 @@
+// ── Cookie Blocking: Override document.cookie in page context ──
+(function() {
+  if (window.__aiFwCookieBlocked) return;
+  window.__aiFwCookieBlocked = true;
+  try {
+    const cookieDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie') ||
+                       Object.getOwnPropertyDescriptor(HTMLDocument.prototype, 'cookie');
+    if (cookieDesc && cookieDesc.configurable) {
+      Object.defineProperty(document, 'cookie', {
+        get: function() { return ''; },
+        set: function() { /* blocked */ },
+        configurable: true
+      });
+    }
+  } catch (e) {}
+})();
+
 let currentApp = null;
 let inputElement = null;
 let sendButton = null;

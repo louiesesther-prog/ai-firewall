@@ -167,6 +167,53 @@ function vpnStatus() {
   };
 }
 
+// ── Cookie Blocking on AI Domains ──────────────────────────
+let blockCookies = true;
+
+function isAiDomain(url) {
+  try {
+    const h = new URL(url).hostname;
+    return AI_DOMAINS.some(d => h === d || h.endsWith('.' + d));
+  } catch (e) { return false; }
+}
+
+function setupCookieBlocking() {
+  browser.webRequest.onBeforeSendHeaders.addListener(
+    function(details) {
+      if (!blockCookies || !isEnabled || !isAiDomain(details.url)) return {};
+      const headers = details.requestHeaders || [];
+      const filtered = headers.filter(h => h.name.toLowerCase() !== 'cookie');
+      return { requestHeaders: filtered };
+    },
+    { urls: AI_DOMAINS.map(d => '*://' + d + '/*') },
+    ['blocking', 'requestHeaders']
+  );
+
+  browser.webRequest.onHeadersReceived.addListener(
+    function(details) {
+      if (!blockCookies || !isEnabled || !isAiDomain(details.url)) return {};
+      const headers = details.responseHeaders || [];
+      const filtered = headers.filter(h => h.name.toLowerCase() !== 'set-cookie');
+      return { responseHeaders: filtered };
+    },
+    { urls: AI_DOMAINS.map(d => '*://' + d + '/*') },
+    ['blocking', 'responseHeaders']
+  );
+}
+
+function clearAiCookies() {
+  if (!blockCookies || !isEnabled) return;
+  AI_DOMAINS.forEach(domain => {
+    try {
+      browser.cookies.getAll({ domain }).then(cookies => {
+        cookies.forEach(c => {
+          browser.cookies.remove({ url: 'https://' + domain + c.path, name: c.name });
+        });
+      });
+    } catch (e) {}
+  });
+}
+
 browser.storage.local.get(['vpnConfig']).then((res) => {
   if (res.vpnConfig) vpnConfig = Object.assign({}, vpnConfig, res.vpnConfig);
   applyVpn();
@@ -290,15 +337,27 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       applyVpn();
       sendResponse(vpnStatus());
       break;
+    case 'BLOCK_COOKIES_GET':
+      sendResponse({ blockCookies });
+      break;
+    case 'BLOCK_COOKIES_SET':
+      blockCookies = !!msg.enabled;
+      browser.storage.local.set({ blockCookies });
+      if (blockCookies) clearAiCookies();
+      sendResponse({ blockCookies });
+      break;
     default:
       sendResponse({ error: 'Unknown message type' });
   }
   return true;
 });
 
-browser.storage.local.get(['isEnabled', 'maskMode']).then((result) => {
+browser.storage.local.get(['isEnabled', 'maskMode', 'blockCookies']).then((result) => {
   if (result.isEnabled !== undefined) isEnabled = result.isEnabled;
   if (result.maskMode !== undefined) maskMode = result.maskMode;
+  if (result.blockCookies !== undefined) blockCookies = result.blockCookies;
+  setupCookieBlocking();
+  if (blockCookies) clearAiCookies();
 });
 
-console.log('[AI Firewall] Safari background loaded (' + PII_RULES.length + ' PII types, Luhn, confidence)');
+console.log('[AI Firewall] Firefox background loaded (' + PII_RULES.length + ' PII types, cookie blocking)');
