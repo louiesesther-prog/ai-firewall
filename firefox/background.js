@@ -167,51 +167,43 @@ function vpnStatus() {
   };
 }
 
-// ── Cookie Blocking on AI Domains ──────────────────────────
+// ── Cookie Blocking (all websites) ──────────────────────────
 let blockCookies = true;
-
-function isAiDomain(url) {
-  try {
-    const h = new URL(url).hostname;
-    return AI_DOMAINS.some(d => h === d || h.endsWith('.' + d));
-  } catch (e) { return false; }
-}
 
 function setupCookieBlocking() {
   browser.webRequest.onBeforeSendHeaders.addListener(
     function(details) {
-      if (!blockCookies || !isEnabled || !isAiDomain(details.url)) return {};
+      if (!blockCookies || !isEnabled) return {};
       const headers = details.requestHeaders || [];
       const filtered = headers.filter(h => h.name.toLowerCase() !== 'cookie');
       return { requestHeaders: filtered };
     },
-    { urls: AI_DOMAINS.map(d => '*://' + d + '/*') },
+    { urls: ['<all_urls>'] },
     ['blocking', 'requestHeaders']
   );
 
   browser.webRequest.onHeadersReceived.addListener(
     function(details) {
-      if (!blockCookies || !isEnabled || !isAiDomain(details.url)) return {};
+      if (!blockCookies || !isEnabled) return {};
       const headers = details.responseHeaders || [];
       const filtered = headers.filter(h => h.name.toLowerCase() !== 'set-cookie');
       return { responseHeaders: filtered };
     },
-    { urls: AI_DOMAINS.map(d => '*://' + d + '/*') },
+    { urls: ['<all_urls>'] },
     ['blocking', 'responseHeaders']
   );
 }
 
-function clearAiCookies() {
+function clearAllCookies() {
   if (!blockCookies || !isEnabled) return;
-  AI_DOMAINS.forEach(domain => {
-    try {
-      browser.cookies.getAll({ domain }).then(cookies => {
-        cookies.forEach(c => {
-          browser.cookies.remove({ url: 'https://' + domain + c.path, name: c.name });
-        });
+  try {
+    browser.cookies.getAll({}).then(cookies => {
+      cookies.forEach(c => {
+        const url = (c.secure ? 'https://' : 'http://') + c.domain + c.path;
+        browser.cookies.remove({ url, name: c.name });
       });
-    } catch (e) {}
-  });
+    });
+  } catch (e) {}
 }
 
 browser.storage.local.get(['vpnConfig']).then((res) => {
@@ -343,7 +335,7 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'BLOCK_COOKIES_SET':
       blockCookies = !!msg.enabled;
       browser.storage.local.set({ blockCookies });
-      if (blockCookies) clearAiCookies();
+      if (blockCookies) clearAllCookies();
       sendResponse({ blockCookies });
       break;
     default:
@@ -357,7 +349,7 @@ browser.storage.local.get(['isEnabled', 'maskMode', 'blockCookies']).then((resul
   if (result.maskMode !== undefined) maskMode = result.maskMode;
   if (result.blockCookies !== undefined) blockCookies = result.blockCookies;
   setupCookieBlocking();
-  if (blockCookies) clearAiCookies();
+  if (blockCookies) clearAllCookies();
 });
 
 console.log('[AI Firewall] Firefox background loaded (' + PII_RULES.length + ' PII types, cookie blocking)');

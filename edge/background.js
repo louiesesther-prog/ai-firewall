@@ -177,51 +177,43 @@ function vpnStatus() {
   };
 }
 
-// ── Cookie Blocking on AI Domains ──────────────────────────
+// ── Cookie Blocking (all websites) ──────────────────────────
 let blockCookies = true;
-
-function isAiDomain(url) {
-  try {
-    const h = new URL(url).hostname;
-    return AI_DOMAINS.some(d => h === d || h.endsWith('.' + d));
-  } catch (e) { return false; }
-}
 
 function setupCookieBlocking() {
   chrome.webRequest.onBeforeSendHeaders.addListener(
     function(details) {
-      if (!blockCookies || !isEnabled || !isAiDomain(details.url)) return {};
+      if (!blockCookies || !isEnabled) return {};
       const headers = details.requestHeaders || [];
       const filtered = headers.filter(h => h.name.toLowerCase() !== 'cookie');
       return { requestHeaders: filtered };
     },
-    { urls: AI_DOMAINS.map(d => '*://' + d + '/*') },
+    { urls: ['<all_urls>'] },
     ['blocking', 'requestHeaders', 'extraHeaders']
   );
 
   chrome.webRequest.onHeadersReceived.addListener(
     function(details) {
-      if (!blockCookies || !isEnabled || !isAiDomain(details.url)) return {};
+      if (!blockCookies || !isEnabled) return {};
       const headers = details.responseHeaders || [];
       const filtered = headers.filter(h => h.name.toLowerCase() !== 'set-cookie');
       return { responseHeaders: filtered };
     },
-    { urls: AI_DOMAINS.map(d => '*://' + d + '/*') },
+    { urls: ['<all_urls>'] },
     ['blocking', 'responseHeaders']
   );
 }
 
-function clearAiCookies() {
+function clearAllCookies() {
   if (!blockCookies || !isEnabled) return;
-  AI_DOMAINS.forEach(domain => {
-    try {
-      chrome.cookies.getAll({ domain }, (cookies) => {
-        cookies.forEach(c => {
-          chrome.cookies.remove({ url: 'https://' + domain + c.path, name: c.name });
-        });
+  try {
+    chrome.cookies.getAll({}, (cookies) => {
+      cookies.forEach(c => {
+        const url = (c.secure ? 'https://' : 'http://') + c.domain + c.path;
+        chrome.cookies.remove({ url, name: c.name });
       });
-    } catch (e) {}
-  });
+    });
+  } catch (e) {}
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -344,7 +336,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'BLOCK_COOKIES_SET':
       blockCookies = !!msg.enabled;
       chrome.storage.local.set({ blockCookies });
-      if (blockCookies) clearAiCookies();
+      if (blockCookies) clearAllCookies();
       sendResponse({ blockCookies });
       break;
     default:
@@ -360,7 +352,7 @@ chrome.storage.local.get(['isEnabled', 'maskMode', 'vpnConfig', 'blockCookies'],
   if (result.blockCookies !== undefined) blockCookies = result.blockCookies;
   applyVpn();
   setupCookieBlocking();
-  if (blockCookies) clearAiCookies();
+  if (blockCookies) clearAllCookies();
 });
 
 console.log('[AI Firewall] Background service worker loaded (v2 with ' + PII_RULES.length + ' PII types, cookie blocking)');

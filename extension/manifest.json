@@ -7,27 +7,7 @@
   "support_url": "https://ai-firewall.org/support.html",
   "permissions": ["storage", "proxy", "privacy", "scripting", "webRequest", "webRequestBlocking", "cookies"],
   "host_permissions": [
-    "http://127.0.0.1/*",
-    "http://localhost/*",
-    "https://chat.openai.com/*",
-    "https://chatgpt.com/*",
-    "https://copilot.microsoft.com/*",
-    "https://gemini.google.com/*",
-    "https://claude.ai/*",
-    "https://perplexity.ai/*",
-    "https://poe.com/*",
-    "https://groq.com/*",
-    "https://mistral.ai/*",
-    "https://cohere.ai/*",
-    "https://meta.ai/*",
-    "https://deepseek.com/*",
-    "https://you.com/*",
-    "https://kimi.ai/*",
-    "https://qwen.ai/*",
-    "https://jina.ai/*",
-    "https://phind.com/*",
-    "https://chat.google.com/*",
-    "https://ai.google.dev/*"
+    "<all_urls>"
   ],
   "content_scripts": [{
     "matches": [

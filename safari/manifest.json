@@ -17,27 +17,7 @@
     "cookies"
   ],
   "host_permissions": [
-    "http://127.0.0.1/*",
-    "http://localhost/*",
-    "*://chat.openai.com/*",
-    "*://chatgpt.com/*",
-    "*://copilot.microsoft.com/*",
-    "*://gemini.google.com/*",
-    "*://claude.ai/*",
-    "*://perplexity.ai/*",
-    "*://poe.com/*",
-    "*://groq.com/*",
-    "*://mistral.ai/*",
-    "*://cohere.ai/*",
-    "*://meta.ai/*",
-    "*://deepseek.com/*",
-    "*://you.com/*",
-    "*://kimi.ai/*",
-    "*://qwen.ai/*",
-    "*://jina.ai/*",
-    "*://phind.com/*",
-    "*://chat.google.com/*",
-    "*://ai.google.dev/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js",
