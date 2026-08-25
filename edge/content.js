@@ -166,7 +166,7 @@
       PHONE_NUM: '555-' + (Math.floor(Math.random() * 900) + 100) + '-' + (Math.floor(Math.random() * 9000) + 1000),
       CC_NUM: '4111' + Array(12).fill(0).map(function(){return Math.floor(Math.random()*10)}).join(''),
       SSN_NUM: (Math.floor(Math.random() * 900) + 100) + '-' + (Math.floor(Math.random() * 90) + 10) + '-' + (Math.floor(Math.random() * 9000) + 1000),
-      IP_ADDR: Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256),
+      IP_ADDR: '0.0.0.0',
       PWD_VAL: '[REDACTED]',
       APIKEY: 'sk-' + Array(24).fill(0).map(function(){return 'abcdef0123456789'[Math.floor(Math.random()*16)]}).join(''),
       CRYPTO: '0x' + Array(40).fill(0).map(function(){return 'abcdef0123456789'[Math.floor(Math.random()*16)]}).join(''),
