@@ -73,7 +73,12 @@ function xmlToText(xml) {
 }
 
 function extract(filePath) {
-  const buf = fs.readFileSync(filePath);
+  let buf;
+  try {
+    buf = fs.readFileSync(filePath);
+  } catch (e) {
+    throw new Error('Cannot read file: ' + filePath + ' (' + e.message + ')');
+  }
   const zipSig = readUInt32LE(buf, 0);
   if (zipSig !== 0x04034b50) {
     throw new Error('Invalid DOCX file (not a valid ZIP archive)');

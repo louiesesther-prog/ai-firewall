@@ -17,7 +17,12 @@ function ensureTesseract() {
 
 async function extract(filePath) {
   const tess = ensureTesseract();
-  const buf = fs.readFileSync(filePath);
+  let buf;
+  try {
+    buf = fs.readFileSync(filePath);
+  } catch (e) {
+    throw new Error('Cannot read file: ' + filePath + ' (' + e.message + ')');
+  }
   const { data } = await tess.recognize(buf, 'eng', {});
   return data.text || '';
 }

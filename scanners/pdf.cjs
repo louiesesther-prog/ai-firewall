@@ -17,7 +17,12 @@ function ensurePdfParse() {
 
 async function extract(filePath) {
   const parse = ensurePdfParse();
-  const buf = fs.readFileSync(filePath);
+  let buf;
+  try {
+    buf = fs.readFileSync(filePath);
+  } catch (e) {
+    throw new Error('Cannot read file: ' + filePath + ' (' + e.message + ')');
+  }
   const data = await parse(buf);
   return data.text || '';
 }

@@ -63,7 +63,7 @@ self.addEventListener('fetch', (e) => {
           const copy = res.clone();
           caches.open(CACHE).then((cache) => {
             cache.put(req, copy);
-            trimCache(CACHE, MAX_CACHE_ENTRIES);
+            trimCache(CACHE, MAX_CACHE_ENTRIES).catch(() => {});
           });
         }
         return res;

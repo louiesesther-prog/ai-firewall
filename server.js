@@ -42,7 +42,11 @@ function createAuthMiddleware(apiKey) {
     if (req.method === 'OPTIONS') return next();
     const provided = req.headers['x-api-key'];
     const provBuf = Buffer.from(provided || '');
-    if (provBuf.length !== keyBuf.length || !crypto.timingSafeEqual(provBuf, keyBuf)) {
+    try {
+      if (provBuf.length !== keyBuf.length || !crypto.timingSafeEqual(provBuf, keyBuf)) {
+        return res.status(401).json({ error: 'Unauthorized. Provide X-API-Key header.' });
+      }
+    } catch (e) {
       return res.status(401).json({ error: 'Unauthorized. Provide X-API-Key header.' });
     }
     next();
@@ -493,6 +497,7 @@ setInterval(loadHealth, 5000);
       const validated = testRules.filter(r => r.custom).map(r => ({ id: r.id, name: r.name, label: r.label, confidence: r.conf }));
       res.json({ success: true, customRulesLoaded: validated.length, rules: validated });
     } catch (err) {
+      console.error('[/rules/custom] Error:', err.message);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
@@ -574,15 +579,19 @@ setInterval(loadHealth, 5000);
     const chunks = [];
     const MAX_UPLOAD = 5 * 1024 * 1024; // 5MB
     let totalSize = 0;
+    let tooLarge = false;
     req.on('data', (chunk) => {
+      if (tooLarge) return;
       totalSize += chunk.length;
       if (totalSize > MAX_UPLOAD) {
+        tooLarge = true;
         req.destroy();
         return res.status(413).json({ error: 'File too large. Maximum 5MB.' });
       }
       chunks.push(chunk);
     });
     req.on('end', () => {
+      if (tooLarge) return;
       try {
         const raw = Buffer.concat(chunks).toString('utf8');
         const parts = raw.split(boundary).filter(p => p.trim() && p.trim() !== '--');
@@ -708,11 +717,16 @@ function startServer(port, configOpts, callback) {
 }
 
 if (require.main === module) {
+  process.on('uncaughtException', (err) => { console.error('Uncaught exception:', err.message || err); process.exit(1); });
+  process.on('unhandledRejection', (err) => { console.error('Unhandled rejection:', err && err.message ? err.message : err); });
   const args = process.argv.slice(2);
   let port = parseInt(process.env.PORT, 10) || DEFAULT_PORT;
   let configPath = null;
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--port' || args[i] === '-p') port = parseInt(args[++i], 10);
+    if (args[i] === '--port' || args[i] === '-p') {
+      const p = parseInt(args[++i], 10);
+      port = isNaN(p) || p < 1 || p > 65535 ? DEFAULT_PORT : p;
+    }
     if (args[i] === '--config' || args[i] === '-c') configPath = args[++i];
   }
   startServer(port, { config: configPath });

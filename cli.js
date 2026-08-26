@@ -463,8 +463,10 @@ function initProject() {
   if (fs.existsSync(cfgPath)) {
     console.log('.ai-firewallrc already exists.');
   } else {
-    fs.writeFileSync(cfgPath, JSON.stringify(DEFAULT_CONFIG, null, 2) + '\n', 'utf8');
-    console.log('Created .ai-firewallrc');
+    try {
+      fs.writeFileSync(cfgPath, JSON.stringify(DEFAULT_CONFIG, null, 2) + '\n', 'utf8');
+      console.log('Created .ai-firewallrc');
+    } catch (e) { console.error('Failed to create .ai-firewallrc:', e.message); process.exit(1); }
   }
 
   const gitDir = path.join(process.cwd(), '.git');
@@ -503,9 +505,11 @@ exit 0
 `;
       const scriptsDir = path.join(process.cwd(), 'scripts');
       if (!fs.existsSync(scriptsDir)) fs.mkdirSync(scriptsDir, { recursive: true });
-      fs.writeFileSync(hookPath, hookContent, 'utf8');
-      try { fs.chmodSync(hookPath, '755'); } catch (e) {}
-      console.log('Installed pre-commit hook at', hookPath);
+      try {
+        fs.writeFileSync(hookPath, hookContent, 'utf8');
+        try { fs.chmodSync(hookPath, '755'); } catch (e) { /* chmod not available on all platforms */ }
+        console.log('Installed pre-commit hook at', hookPath);
+      } catch (e) { console.error('Failed to install pre-commit hook:', e.message); }
     }
   } else {
     console.log('No .git directory found. Skipping pre-commit hook installation.');
@@ -810,6 +814,8 @@ function printTypes() {
 
 // ── MAIN ─────────────────────────────────────────────────────────
 async function main() {
+  process.on('uncaughtException', (err) => { console.error('Uncaught exception:', err.message || err); process.exit(1); });
+  process.on('unhandledRejection', (err) => { console.error('Unhandled rejection:', err && err.message ? err.message : err); process.exit(1); });
   const args = process.argv.slice(2);
   if (args.includes('--help') || args.includes('-h') || args.length === 0 && process.stdin.isTTY) {
     printHelp();
@@ -842,7 +848,10 @@ async function main() {
     let profile = 'none';
     let analytics = false;
     for (let i = 1; i < args.length; i++) {
-      if (args[i] === '--port' || args[i] === '-p') port = parseInt(args[++i], 10);
+      if (args[i] === '--port' || args[i] === '-p') {
+        const p = parseInt(args[++i], 10);
+        port = isNaN(p) || p < 1 || p > 65535 ? 3000 : p;
+      }
       if (args[i] === '--config' || args[i] === '-c') configPath = args[++i];
       if (args[i] === '--profile') profile = args[++i] || 'none';
       if (args[i] === '--analytics') analytics = true;
@@ -1016,7 +1025,13 @@ async function main() {
       const origContents = {};
       const scrubbedContents = {};
       for (const f of Object.keys(results)) {
-        const content = fs.readFileSync(f, 'utf8');
+        let content;
+        try {
+          content = fs.readFileSync(f, 'utf8');
+        } catch (e) {
+          console.error('Warning: Could not read ' + f + ': ' + e.message);
+          continue;
+        }
         origContents[f] = content;
         const r = scrub(content, { mode: encryptMode && encKey ? 'encrypt' : 'placeholder', rules: configRules, fakers: customFakers });
         scrubbedContents[f] = r.scrubbed;
@@ -1107,8 +1122,10 @@ async function main() {
       output = generateHtmlReport(results, score);
       console.log(output);
       if (reportPath) {
-        fs.writeFileSync(reportPath, output, 'utf8');
-        console.log('Report saved to ' + reportPath);
+        try {
+          fs.writeFileSync(reportPath, output, 'utf8');
+          console.log('Report saved to ' + reportPath);
+        } catch (e) { console.error('Failed to write report:', e.message); }
       }
       return;
     }
@@ -1144,8 +1161,10 @@ async function main() {
 
     if (output) {
       if (reportPath) {
-        fs.writeFileSync(reportPath, output, 'utf8');
-        console.log('Report saved to ' + reportPath);
+        try {
+          fs.writeFileSync(reportPath, output, 'utf8');
+          console.log('Report saved to ' + reportPath);
+        } catch (e) { console.error('Failed to write report:', e.message); }
       } else {
         console.log(output);
       }
@@ -1169,7 +1188,11 @@ async function main() {
 
     for (let i = 1; i < args.length; i++) {
       switch (args[i]) {
-        case '--fail-threshold': failThreshold = parseInt(args[++i], 10); break;
+        case '--fail-threshold': {
+          const t = parseInt(args[++i], 10);
+          failThreshold = isNaN(t) || t < 1 ? 1 : t;
+          break;
+        }
         case '--format': case '-F': format = args[++i]; break;
         case '--config': case '-c': configPath = args[++i]; break;
         case '--profile': profile = args[++i] || 'none'; break;
@@ -1320,5 +1343,5 @@ async function main() {
   }
 }
 
-if (require.main === module) main();
+if (require.main === module) main().catch(err => { console.error('Fatal:', err.message || err); process.exit(1); });
 module.exports = { scrub, scanFile, scanDir, loadConfig, resolveRules, computeRiskScore, luhnCheck, generateHtmlReport, generateDiffReport, watchDir, encryptValue, decryptValue, deriveKey, loadPlugins, BUILTIN_RULES, FAKERS, COMPLIANCE_PROFILES, RISK_WEIGHTS, getCustomFakers };

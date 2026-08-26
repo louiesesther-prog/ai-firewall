@@ -8,7 +8,8 @@ function scanText(text, options = {}) {
   let rules = options.rules || BUILTIN_RULES;
   const profile = options.profile || 'none';
   if (profile !== 'none' && COMPLIANCE_PROFILES[profile]) {
-    rules = rules.filter(r => COMPLIANCE_PROFILES[profile].includes(r.id));
+    const profileRules = COMPLIANCE_PROFILES[profile];
+    rules = rules.filter(r => profileRules.includes(r.id));
   }
   const result = scrub(text, { mode: 'placeholder', rules });
   const riskScore = computeRiskScore(result.matches);
@@ -31,7 +32,8 @@ function scrubText(text, options = {}) {
   let rules = options.rules || BUILTIN_RULES;
   const profile = options.profile || 'none';
   if (profile !== 'none' && COMPLIANCE_PROFILES[profile]) {
-    rules = rules.filter(r => COMPLIANCE_PROFILES[profile].includes(r.id));
+    const profileRules = COMPLIANCE_PROFILES[profile];
+    rules = rules.filter(r => profileRules.includes(r.id));
   }
   return scrub(text, { mode: 'placeholder', rules });
 }
