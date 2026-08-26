@@ -2,13 +2,35 @@
   "name": "ai-firewall",
   "version": "2.1.0",
   "description": "Detect and mask 30+ PII types in text. 100% local. CLI, REST API, browser extension, VS Code extension, PWA, and Docker.",
-  "keywords": ["pii", "privacy", "security", "masking", "detection", "firewall", "ai-chat", "scan", "compliance", "gdpr", "hipaa"],
+  "keywords": [
+    "pii",
+    "privacy",
+    "security",
+    "masking",
+    "detection",
+    "firewall",
+    "ai-chat",
+    "scan",
+    "compliance",
+    "gdpr",
+    "hipaa"
+  ],
   "license": "MIT",
   "homepage": "https://github.com/louiesesther-prog/ai-firewall",
-  "repository": { "type": "git", "url": "git+https://github.com/louiesesther-prog/ai-firewall.git" },
-  "bugs": { "url": "https://github.com/louiesesther-prog/ai-firewall/issues" },
-  "engines": { "node": ">=18.0.0" },
-  "bin": { "ai-firewall": "./cli.js", "ai-fw": "./cli.js" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/louiesesther-prog/ai-firewall.git"
+  },
+  "bugs": {
+    "url": "https://github.com/louiesesther-prog/ai-firewall/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "ai-firewall": "./cli.js",
+    "ai-fw": "./cli.js"
+  },
   "main": "./cli.js",
   "types": "index.d.ts",
   "exports": {
@@ -18,24 +40,43 @@
       "types": "./index.d.ts"
     }
   },
-  "files": ["cli.js", "server.js", "rules.cjs", "context.cjs", "scanners/", "analytics/", "bot/", "index.html", "extension/", "sw.js", "manifest.json", ".vscode-ext/", "test-report.mjs", "index.d.ts", "README.md", "LICENSE"],
+  "files": [
+    "cli.js",
+    "server.js",
+    "rules.cjs",
+    "context.cjs",
+    "scanners/",
+    "analytics/",
+    "bot/",
+    "saas/",
+    "index.html",
+    "extension/",
+    "sw.js",
+    "manifest.json",
+    ".vscode-ext/",
+    "test-report.mjs",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "node test-report.mjs",
     "scan": "node cli.js scan",
     "serve": "node cli.js serve",
     "start": "node cli.js serve",
+    "saas": "node saas/index.js",
     "precommit": "node cli.js scan --summary"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "sql.js": "^1.14.2"
   },
   "optionalDependencies": {
-    "pdf-parse": "^1.1.1",
-    "better-sqlite3": "^11.0.0",
     "@slack/bolt": "^3.17.0",
-    "discord.js": "^14.14.0"
+    "better-sqlite3": "^11.10.0",
+    "discord.js": "^14.14.0",
+    "pdf-parse": "^1.1.1"
   },
-  "devDependencies": {},
   "publishConfig": {
     "access": "public",
     "provenance": true
