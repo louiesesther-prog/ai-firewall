@@ -1041,7 +1041,13 @@ async function main() {
       } else {
         for (const [f, findings] of Object.entries(results)) {
           console.log('\n=== ' + f + ' (' + findings.length + ' changes) ===');
-          const content = fs.readFileSync(f, 'utf8');
+          let content;
+          try {
+            content = fs.readFileSync(f, 'utf8');
+          } catch (e) {
+            console.error('  Warning: Could not read ' + f + ': ' + e.message);
+            continue;
+          }
           const r = scrub(content, { mode: 'placeholder', rules: configRules, fakers: customFakers });
           const lines = content.split('\n');
           const scrubbedLines = r.scrubbed.split('\n');
