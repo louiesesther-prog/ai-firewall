@@ -177,13 +177,26 @@ function vpnStatus() {
   };
 }
 
-// ── Cookie Blocking (all websites) ──────────────────────────
-let blockCookies = true;
+// ── Cookie Blocking (per-domain or global) ───────────────────
+let cookieBlockMode = 'off';       // 'off' | 'per-domain' | 'global'
+let blockedDomains = [];           // used when mode is 'per-domain'
+
+function shouldBlockCookiesFor(url) {
+  if (!isEnabled || cookieBlockMode === 'off') return false;
+  if (cookieBlockMode === 'global') return true;
+  if (cookieBlockMode === 'per-domain' && blockedDomains.length > 0) {
+    try {
+      const h = new URL(url).hostname;
+      return blockedDomains.some(d => h === d || h.endsWith('.' + d));
+    } catch (e) { return false; }
+  }
+  return false;
+}
 
 function setupCookieBlocking() {
   chrome.webRequest.onBeforeSendHeaders.addListener(
     function(details) {
-      if (!blockCookies || !isEnabled) return {};
+      if (!shouldBlockCookiesFor(details.url)) return {};
       const headers = details.requestHeaders || [];
       const filtered = headers.filter(h => h.name.toLowerCase() !== 'cookie');
       return { requestHeaders: filtered };
@@ -194,7 +207,7 @@ function setupCookieBlocking() {
 
   chrome.webRequest.onHeadersReceived.addListener(
     function(details) {
-      if (!blockCookies || !isEnabled) return {};
+      if (!shouldBlockCookiesFor(details.url)) return {};
       const headers = details.responseHeaders || [];
       const filtered = headers.filter(h => h.name.toLowerCase() !== 'set-cookie');
       return { responseHeaders: filtered };
@@ -204,8 +217,23 @@ function setupCookieBlocking() {
   );
 }
 
+function clearCookiesForDomains(domains) {
+  if (!isEnabled || !domains || domains.length === 0) return;
+  try {
+    chrome.cookies.getAll({}, (cookies) => {
+      cookies.forEach(c => {
+        const match = domains.some(d => c.domain === d || c.domain.endsWith('.' + d));
+        if (match) {
+          const url = (c.secure ? 'https://' : 'http://') + c.domain + c.path;
+          chrome.cookies.remove({ url, name: c.name });
+        }
+      });
+    });
+  } catch (e) {}
+}
+
 function clearAllCookies() {
-  if (!blockCookies || !isEnabled) return;
+  if (!isEnabled) return;
   try {
     chrome.cookies.getAll({}, (cookies) => {
       cookies.forEach(c => {
@@ -331,13 +359,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       applyVpn(() => sendResponse(vpnStatus()));
       break;
     case 'BLOCK_COOKIES_GET':
-      sendResponse({ blockCookies });
+      sendResponse({ cookieBlockMode, blockedDomains });
       break;
     case 'BLOCK_COOKIES_SET':
-      blockCookies = !!msg.enabled;
-      chrome.storage.local.set({ blockCookies });
-      if (blockCookies) clearAllCookies();
-      sendResponse({ blockCookies });
+      cookieBlockMode = msg.mode || 'off';
+      if (msg.domains !== undefined) blockedDomains = msg.domains;
+      chrome.storage.local.set({ cookieBlockMode, blockedDomains });
+      if (cookieBlockMode === 'global') clearAllCookies();
+      else if (cookieBlockMode === 'per-domain') clearCookiesForDomains(blockedDomains);
+      sendResponse({ cookieBlockMode, blockedDomains });
+      break;
+    case 'BLOCK_COOKIES_ADD_DOMAIN':
+      if (msg.domain && !blockedDomains.includes(msg.domain)) {
+        blockedDomains.push(msg.domain);
+        chrome.storage.local.set({ blockedDomains });
+        if (cookieBlockMode === 'per-domain') clearCookiesForDomains([msg.domain]);
+      }
+      sendResponse({ cookieBlockMode, blockedDomains });
+      break;
+    case 'BLOCK_COOKIES_REMOVE_DOMAIN':
+      blockedDomains = blockedDomains.filter(d => d !== msg.domain);
+      chrome.storage.local.set({ blockedDomains });
+      sendResponse({ cookieBlockMode, blockedDomains });
       break;
     default:
       sendResponse({ error: 'Unknown message type' });
@@ -345,14 +388,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true;
 });
 
-chrome.storage.local.get(['isEnabled', 'maskMode', 'vpnConfig', 'blockCookies'], (result) => {
+chrome.storage.local.get(['isEnabled', 'maskMode', 'vpnConfig', 'cookieBlockMode', 'blockedDomains'], (result) => {
   if (result.isEnabled !== undefined) isEnabled = result.isEnabled;
   if (result.maskMode !== undefined) maskMode = result.maskMode;
   if (result.vpnConfig) vpnConfig = Object.assign({}, vpnConfig, result.vpnConfig);
-  if (result.blockCookies !== undefined) blockCookies = result.blockCookies;
+  if (result.cookieBlockMode !== undefined) cookieBlockMode = result.cookieBlockMode;
+  if (result.blockedDomains !== undefined) blockedDomains = result.blockedDomains;
   applyVpn();
   setupCookieBlocking();
-  if (blockCookies) clearAllCookies();
+  if (cookieBlockMode === 'global') clearAllCookies();
+  else if (cookieBlockMode === 'per-domain') clearCookiesForDomains(blockedDomains);
 });
 
-console.log('[AI Firewall] Background service worker loaded (v2 with ' + PII_RULES.length + ' PII types, cookie blocking)');
+console.log('[AI Firewall] Background service worker loaded (v2 with ' + PII_RULES.length + ' PII types, per-domain cookie blocking)');

@@ -1,17 +1,25 @@
-// ── Cookie Blocking: Override document.cookie in page context ──
+// ── Cookie Blocking: Override document.cookie in page context (if enabled) ──
 (function() {
   if (window.__aiFwCookieBlocked) return;
-  window.__aiFwCookieBlocked = true;
   try {
-    const cookieDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie') ||
-                       Object.getOwnPropertyDescriptor(HTMLDocument.prototype, 'cookie');
-    if (cookieDesc && cookieDesc.configurable) {
-      Object.defineProperty(document, 'cookie', {
-        get: function() { return ''; },
-        set: function() { /* blocked */ },
-        configurable: true
-      });
-    }
+    chrome.runtime.sendMessage({ type: 'BLOCK_COOKIES_GET' }, (res) => {
+      if (!res || res.cookieBlockMode === 'off') return;
+      const hostname = location.hostname;
+      const shouldBlock = res.cookieBlockMode === 'global' ||
+        (res.cookieBlockMode === 'per-domain' && res.blockedDomains && res.blockedDomains.some(d => hostname === d || hostname.endsWith('.' + d)));
+      if (!shouldBlock) return;
+
+      window.__aiFwCookieBlocked = true;
+      const cookieDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie') ||
+                         Object.getOwnPropertyDescriptor(HTMLDocument.prototype, 'cookie');
+      if (cookieDesc && cookieDesc.configurable) {
+        Object.defineProperty(document, 'cookie', {
+          get: function() { return ''; },
+          set: function() { /* blocked */ },
+          configurable: true
+        });
+      }
+    });
   } catch (e) {}
 })();
 
