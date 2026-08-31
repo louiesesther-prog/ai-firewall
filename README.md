@@ -329,6 +329,37 @@ ENTERPRISE_ALL=1 node server.js     # live API + /enterprise dashboard
 
 Run `node cli.js enterprise` for CLI subcommands over the same modules.
 
+## Compliance & Licensing
+
+### Dependency license posture
+A scan of shipped dependencies (direct + transitive) found **no GPL/AGPL/copyleft
+code**. All are permissive (MIT/ISC/Apache-2.0/public-domain), including embedded
+SQLite via `sql.js`/`better-sqlite3` (SQLite is public domain; both wrappers are MIT).
+This keeps the open-core project free of license contamination. If third-party
+marketplace packs are ever added, re-audit their licenses before bundling.
+
+### "100% local" is scoped to the client
+The browser extension, CLI, and PWA process data on-device — nothing leaves the
+machine, so no personal-data *transfer* obligation applies to the client. This
+**does not extend** to the self-hosted/server deployment: once you run the REST API
+or enterprise server on your own infra, that data is subject to your GDPR/HIPAA
+obligations. Keep the "100% local" claim scoped to the client tools.
+
+### Profiles are tools, not certifications
+Built-in compliance profiles (GDPR Art. 30, HIPAA, PCI-DSS, SOX) assist detection
+and reporting. They do **not** make the operator HIPAA/PCI-DSS *certified*.
+- **HIPAA** customers require a signed **BAA**; provide one before claiming compliance.
+- **PCI-DSS** — this tool is not a payment processor; it only helps mask card data.
+
+### Marketplace / third-party content
+If third-party policy packs or templates are distributed, define licensing and
+liability in a marketplace Terms of Service. Attribution and per-pack license text
+must be preserved.
+
+### Geographic/legal notes
+Advertising a built-in WireGuard VPN / proxy mode is restricted in some jurisdictions
+(e.g. China, UAE, Russia). Review local law before marketing those features there.
+
 ## License
 
 MIT
