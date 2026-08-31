@@ -23,6 +23,33 @@ npx ai-firewall scan --profile hipaa --file patient.txt
 npx ai-firewall serve --port 3000
 ```
 
+### Install from GitHub Release (no npm account needed)
+
+Download `ai-firewall-<version>.tgz` from the
+[Releases page](https://github.com/louiesesther-prog/ai-firewall/releases), then:
+
+```bash
+tar -xzf ai-firewall-<version>.tgz
+cd package
+npm install                 # installs express + sql.js
+node cli.js --help          # full CLI
+node cli.js license         # open-core tier status (community by default)
+node server.js              # self-host the REST API
+```
+
+The tarball includes the CLI, REST server, browser extensions, and (with a valid
+license key) all enterprise modules — SSO/SCIM, RBAC, multi-tenancy, policy
+engine, alerts, shadow mode, network agent, reporting, and marketplace.
+
+### Docker
+
+```bash
+docker build -t ai-firewall .
+docker run --rm ai-firewall --help
+# self-hosted server on port 3000:
+docker run --rm -p 3000:3000 -e ENTERPRISE_ALL=1 ai-firewall serve
+```
+
 ### Browser Extension
 
 Available for Chrome, Edge, Firefox, and Safari:
