@@ -1,6 +1,6 @@
 {
   "name": "ai-firewall",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Detect and mask 30+ PII types in text. 100% local. CLI, REST API, browser extension, VS Code extension, PWA, and Docker.",
   "keywords": [
     "pii",
@@ -49,12 +49,15 @@
     "analytics/",
     "bot/",
     "saas/",
+    "enterprise/",
     "index.html",
     "extension/",
     "sw.js",
     "manifest.json",
     ".vscode-ext/",
     "test-report.mjs",
+    "test-enterprise.mjs",
+    ".env.example",
     "index.d.ts",
     "README.md",
     "LICENSE"
