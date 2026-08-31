@@ -196,6 +196,13 @@
       BR_CPF: Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
       BR_CNPJ: Math.floor(Math.random() * 100).toString().padStart(2,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '.' + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + '/' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + '-' + Math.floor(Math.random() * 100).toString().padStart(2,'0'),
       FR_INSEE: Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 100).toString().padStart(2,'0') + ' ' + Math.floor(Math.random() * 1000).toString().padStart(3,'0'),
+      DE_ID: String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
+      DE_TAX: Math.floor(Math.random() * 300).toString().padStart(3,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0') + ' ' + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
+      KR_RRN: Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + '-' + (Math.floor(Math.random() * 4) + 1) + Math.floor(Math.random() * 1000000).toString().padStart(6,'0'),
+      MX_CURP: (function() { var c = 'AEIOU'; var letters = Array(4).fill(0).map(function() { return c[Math.floor(Math.random() * c.length)]; }).join(''); var consonants = Array(5).fill(0).map(function() { return 'BCDFGHJKLMNPQRSTVWXYZ'[Math.floor(Math.random() * 21)]; }).join(''); return letters + Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + (Math.random() > 0.5 ? 'H' : 'M') + consonants + '0' + Math.floor(Math.random() * 10).toString(); })(),
+      MX_RFC: (function() { var c = 'AEIOUX'; var letters = Array(3).fill(0).map(function() { return c[Math.floor(Math.random() * c.length)]; }).join(''); var letters4 = letters[0] + Array(3).fill(0).map(function() { return 'AEIOUX'[Math.floor(Math.random() * 6)]; }).join(''); var use4 = Math.random() > 0.5; return (use4 ? letters4 : letters) + Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + Array(3).fill(0).map(function() { return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 36)]; }).join(''); })(),
+      SE_PN: Math.floor(Math.random() * 1000000).toString().padStart(6,'0') + Math.floor(Math.random() * 10000).toString().padStart(4,'0'),
+      IT_CF: (function() { var c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; var letters = Array(6).fill(0).map(function() { return c[Math.floor(Math.random() * 26)]; }).join(''); return letters + Math.floor(Math.random() * 100).toString().padStart(2,'0') + c[Math.floor(Math.random() * 26)] + Math.floor(Math.random() * 100).toString().padStart(2,'0') + c[Math.floor(Math.random() * 26)] + Math.floor(Math.random() * 1000).toString().padStart(3,'0') + c[Math.floor(Math.random() * 26)]; })(),
     };
     return fakers[label] || '[FAKE_' + label + ']';
   }
@@ -628,9 +635,55 @@
     if (highConf.length > 0) {
       var target = node.nodeType === 3 ? node.parentElement : node;
       if (target) {
+        // Check if response scrubbing mode is enabled
+        var scrubMode = false;
+        try {
+          if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+            chrome.storage.local.get(['fw_response_scrub'], function(data) {
+              scrubMode = data.fw_response_scrub === true;
+              if (scrubMode) {
+                scrubResponseNode(target, highConf);
+              } else {
+                createResponseWarningOverlay(target, highConf);
+              }
+            });
+            return;
+          }
+        } catch (e) {}
         createResponseWarningOverlay(target, highConf);
         lastScannedNode = node;
       }
+    }
+  }
+
+  function scrubResponseNode(target, piiItems) {
+    if (!target || !piiItems || piiItems.length === 0) return;
+
+    var text = target.textContent || '';
+    var result = mask(text);
+    if (result !== text) {
+      target.textContent = result;
+      lastScannedNode = target;
+
+      // Show brief scrub indicator
+      var indicator = document.createElement('div');
+      Object.assign(indicator.style, {
+        position: 'absolute',
+        right: '8px',
+        top: '8px',
+        background: 'rgba(34, 197, 94, 0.9)',
+        color: 'white',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        zIndex: '2147483646',
+        pointerEvents: 'none',
+      });
+      indicator.textContent = '[AI Firewall] ' + piiItems.length + ' PII items scrubbed from response';
+      target.style.position = 'relative';
+      target.appendChild(indicator);
+      setTimeout(function() { indicator.remove(); }, 3000);
     }
   }
 

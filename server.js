@@ -4,19 +4,123 @@ const path = require('path');
 const crypto = require('crypto');
 const { scrub, scanFile, scanDir, resolveRules, loadConfig, loadPlugins, computeRiskScore, luhnCheck, getCustomFakers, encryptValue, decryptValue, deriveKey, BUILTIN_RULES, COMPLIANCE_PROFILES } = require('./cli.js');
 const fs = require('fs');
+const { isEnabled } = require('./enterprise/feature-flags.cjs');
+
+// ── Enterprise modules (loaded conditionally) ────────────────────
+let enterpriseDb = null;
+let audit = null;
+let complianceExport = null;
+let retention = null;
+let webhookDispatcher = null;
+let createAuditRoutes = null;
+let createWebhookRoutes = null;
+let createApiKeyRoutes = null;
+let createTeamRoutes = null;
+let createScheduledReportRoutes = null;
+let scheduledReports = null;
+let apiKeys = null;
+let teams = null;
+let quotas = null;
+let responseScanner = null;
+let sso = null;
+let scim = null;
+let policyEngine = null;
+let alertService = null;
+let shadowMode = null;
+let networkAgent = null;
+let createSsoRoutes = null;
+let createScimRoutes = null;
+let createPolicyRoutes = null;
+let createAlertRoutes = null;
+let createShadowRoutes = null;
+let createNetworkRoutes = null;
+let rbac = null;
+let organizations = null;
+let reporting = null;
+let marketplace = null;
+let createRbacRoutes = null;
+let createOrganizationRoutes = null;
+let createReportingRoutes = null;
+let createMarketplaceRoutes = null;
+let enterpriseReady = false;
+
+function initEnterprise(db) {
+  try {
+    enterpriseDb = db;
+    const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+    initEnterpriseSchema(db);
+    audit = require('./enterprise/audit/audit.cjs');
+    audit.init(db);
+    complianceExport = require('./enterprise/audit/compliance-export.cjs');
+    complianceExport.init(db);
+    retention = require('./enterprise/audit/retention.cjs');
+    retention.init(db);
+    webhookDispatcher = require('./enterprise/integrations/webhooks.cjs');
+    webhookDispatcher.init(db);
+    scheduledReports = require('./enterprise/audit/scheduled-reports.cjs');
+    scheduledReports.init(db, complianceExport, webhookDispatcher);
+    apiKeys = require('./enterprise/auth/api-keys.cjs');
+    apiKeys.init(db);
+    teams = require('./enterprise/auth/teams.cjs');
+    teams.init(db);
+    quotas = require('./enterprise/auth/quotas.cjs');
+    quotas.init(db);
+    createAuditRoutes = require('./enterprise/routes/audit-routes.cjs');
+    createWebhookRoutes = require('./enterprise/routes/webhook-routes.cjs');
+    createApiKeyRoutes = require('./enterprise/routes/api-key-routes.cjs');
+    createTeamRoutes = require('./enterprise/routes/team-routes.cjs');
+    createScheduledReportRoutes = require('./enterprise/routes/scheduled-report-routes.cjs');
+    responseScanner = require('./scanners/response.cjs');
+    // Phase 3 modules
+    sso = require('./enterprise/identity/sso.cjs');
+    scim = require('./enterprise/identity/scim.cjs');
+    policyEngine = require('./enterprise/policy/policy-engine.cjs');
+    alertService = require('./enterprise/alerts/alerts.cjs');
+    shadowMode = require('./enterprise/observability/shadow-mode.cjs');
+    networkAgent = require('./enterprise/observability/network-agent.cjs');
+    // Phase 3 routes
+    createSsoRoutes = require('./enterprise/routes/sso-routes.cjs');
+    createScimRoutes = require('./enterprise/routes/scim-routes.cjs');
+    createPolicyRoutes = require('./enterprise/routes/policy-routes.cjs');
+    createAlertRoutes = require('./enterprise/routes/alert-routes.cjs');
+    createShadowRoutes = require('./enterprise/routes/shadow-routes.cjs');
+    createNetworkRoutes = require('./enterprise/routes/network-routes.cjs');
+    // Phase 4 modules
+    rbac = require('./enterprise/auth/rbac.cjs');
+    rbac.init(db);
+    rbac.ensureSeedPermissions();
+    organizations = require('./enterprise/tenancy/organizations.cjs');
+    organizations.init(db);
+    reporting = require('./enterprise/analytics/advanced-reporting.cjs');
+    reporting.init(db, complianceExport, webhookDispatcher);
+    marketplace = require('./enterprise/marketplace/marketplace.cjs');
+    marketplace.init(db);
+    marketplace.seedBuiltins();
+    // Phase 4 routes
+    createRbacRoutes = require('./enterprise/routes/rbac-routes.cjs');
+    createOrganizationRoutes = require('./enterprise/routes/organization-routes.cjs');
+    createReportingRoutes = require('./enterprise/routes/reporting-routes.cjs');
+    createMarketplaceRoutes = require('./enterprise/routes/marketplace-routes.cjs');
+    return true;
+  } catch (e) {
+    console.warn('[enterprise] Init failed (enterprise features disabled):', e.message);
+    return false;
+  }
+}
 
 const DEFAULT_PORT = 3000;
 
 // ── SIMPLE RATE LIMITER (in-memory, no dependencies) ─────────────
 function createRateLimiter({ windowMs = 60000, max = 60 } = {}) {
   const hits = new Map();
-  setInterval(() => {
+  const timer = setInterval(() => {
     const now = Date.now();
     for (const [key, data] of hits) {
       if (now - data.start > windowMs) hits.delete(key);
     }
   }, windowMs);
-  return (req, res, next) => {
+  if (timer.unref) timer.unref();
+  return Object.assign((req, res, next) => {
     const key = req.ip || req.connection.remoteAddress || 'unknown';
     const now = Date.now();
     let entry = hits.get(key);
@@ -31,7 +135,7 @@ function createRateLimiter({ windowMs = 60000, max = 60 } = {}) {
       return res.status(429).json({ error: 'Too many requests. Please try again later.' });
     }
     next();
-  };
+  }, { _cleanup: () => clearInterval(timer) });
 }
 
 // ── API KEY AUTH (optional, via AI_FIREWALL_API_KEY env var) ──────
@@ -65,6 +169,7 @@ function createApp(configOpts = {}) {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:");
     res.removeHeader('X-Powered-By');
     next();
   });
@@ -94,6 +199,8 @@ function createApp(configOpts = {}) {
   app.use('/encrypt', limiter);
   app.use('/decrypt', limiter);
   app.use('/rules/custom', limiter);
+  app.use('/scan-response', limiter);
+  app.use('/scrub-response', limiter);
 
   // ── API key auth (optional) ──────────────────────────────────
   const auth = createAuthMiddleware(configOpts.apiKey || process.env.AI_FIREWALL_API_KEY);
@@ -103,6 +210,8 @@ function createApp(configOpts = {}) {
   app.use('/encrypt', auth);
   app.use('/decrypt', auth);
   app.use('/rules/custom', auth);
+  app.use('/scan-response', auth);
+  app.use('/scrub-response', auth);
 
   const config = configOpts.config ? loadConfig(configOpts.config) : {};
   const profile = configOpts.profile || 'none';
@@ -113,7 +222,7 @@ function createApp(configOpts = {}) {
   const mode = configOpts.mode || config.mode || 'placeholder';
 
   app.get('/health', (req, res) => {
-    res.json({ status: 'ok', version: '2.0.0', uptime: process.uptime() });
+    res.json({ status: 'ok', version: require('./package.json').version, uptime: process.uptime() });
   });
 
   app.get('/rules', (req, res) => {
@@ -290,10 +399,9 @@ function createApp(configOpts = {}) {
       const passphrase = body.passphrase || '';
       if (!inputText) return res.status(400).json({ error: 'No text provided.' });
       if (!passphrase) return res.status(400).json({ error: 'Passphrase required.' });
-      const key = deriveKey(passphrase);
       let restored = 0;
       const decrypted = inputText.replace(/\[ENC:([^\]]+)\]/g, (_, enc) => {
-        const val = decryptValue(enc, key);
+        const val = decryptValue(enc, passphrase);
         if (val !== null) { restored++; return val; }
         return '[DECRYPT_FAILED]';
       });
@@ -509,10 +617,10 @@ setInterval(loadHealth, 5000);
 
   function initAnalytics(dbPath) {
     try {
-      tracker = require('./analytics/tracker');
-      queries = require('./analytics/queries');
+      tracker = require('./analytics/tracker.cjs');
+      queries = require('./analytics/queries.cjs');
       analyticsDbPath = dbPath || null;
-      const { getDb } = require('./analytics/db');
+      const { getDb } = require('./analytics/db.cjs');
       getDb(dbPath);
       return true;
     } catch (e) {
@@ -567,6 +675,211 @@ setInterval(loadHealth, 5000);
     try { res.json(queries.getRecentScans(limit)); }
     catch (e) { res.status(500).json({ error: e.message }); }
   });
+
+  // ── ENTERPRISE INIT ──────────────────────────────────────────
+  function initEnterpriseDB() {
+    try {
+      const { getDb: getAnalyticsDb } = require('./analytics/db.cjs');
+      const db = getAnalyticsDb(configOpts.analyticsDb);
+      enterpriseReady = initEnterprise(db);
+    } catch (e) {
+      console.warn('[enterprise] Could not initialize:', e.message);
+    }
+  }
+  initEnterpriseDB();
+
+  // Wire webhook dispatcher into tracker for scan events
+  if (tracker && webhookDispatcher) {
+    tracker.setWebhookDispatcher(webhookDispatcher);
+  }
+
+  // ── RESPONSE SCANNING ENDPOINTS ──────────────────────────────
+  app.post('/scan-response', (req, res) => {
+    try {
+      const body = typeof req.body === 'string' ? { text: req.body } : (req.body || {});
+      const inputText = body.text || body.content || '';
+      if (!inputText) return res.status(400).json({ error: 'No text provided.' });
+
+      const result = responseScanner
+        ? responseScanner.scanResponse(inputText, {
+            service: body.service || 'unknown',
+            threshold: body.threshold || 0.65,
+            profile: body.profile || 'none',
+            rules: rules,
+          })
+        : { findings: [], riskScore: 0, actionTaken: 'none', service: body.service || 'unknown' };
+
+      res.json(result);
+
+      if (audit) {
+        try {
+          audit.logResponseScan({
+            userId: req.headers['x-user-id'] || null,
+            teamId: req.headers['x-team-id'] || null,
+            piiTypes: result.findings.map(f => f.type),
+            riskScore: result.riskScore,
+            actionTaken: result.actionTaken,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || null,
+            metadata: { service: result.service, inputLength: inputText.length },
+          });
+        } catch (e) { /* non-blocking */ }
+      }
+
+      if (tracker && result.findings.length > 0) {
+        try {
+          tracker.trackScan({
+            source: 'api:response',
+            fileType: 'ai_response',
+            matches: result.findings.map(f => ({ type: f.type, confidence: f.confidence })),
+            riskScore: result.riskScore,
+            profile: body.profile || 'none',
+          });
+        } catch (e) { /* non-blocking */ }
+      }
+    } catch (err) {
+      console.error('[/scan-response] Error:', err.message);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/scrub-response', (req, res) => {
+    try {
+      const body = typeof req.body === 'string' ? { text: req.body } : (req.body || {});
+      const inputText = body.text || body.content || '';
+      if (!inputText) return res.status(400).json({ error: 'No text provided.' });
+
+      const result = responseScanner
+        ? responseScanner.scrubResponse(inputText, {
+            mode: body.mode || 'placeholder',
+            profile: body.profile || 'none',
+            rules: rules,
+            fakers: customFakers,
+          })
+        : { scrubbed: inputText, matches: [], actionTaken: 'none' };
+
+      res.json(result);
+
+      if (audit) {
+        try {
+          audit.logScrub({
+            userId: req.headers['x-user-id'] || null,
+            teamId: req.headers['x-team-id'] || null,
+            piiTypes: result.matches.map(m => m.type),
+            riskScore: computeRiskScore(result.matches.map(m => ({ type: m.type, confidence: m.confidence }))),
+            actionTaken: result.actionTaken,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || null,
+            metadata: { source: 'response_scrub', inputLength: inputText.length },
+          });
+        } catch (e) { /* non-blocking */ }
+      }
+    } catch (err) {
+      console.error('[/scrub-response] Error:', err.message);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ── ENTERPRISE ROUTES (gated per-module via feature flags) ────
+  if (enterpriseReady && createAuditRoutes && isEnabled('audit')) {
+    app.use('/audit', createAuditRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createWebhookRoutes && isEnabled('webhooks')) {
+    app.use('/webhooks', createWebhookRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createApiKeyRoutes && isEnabled('apiKeys')) {
+    app.use('/api-keys', createApiKeyRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createTeamRoutes && isEnabled('teams')) {
+    app.use('/teams', createTeamRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createScheduledReportRoutes && isEnabled('scheduled')) {
+    app.use('/scheduled-reports', createScheduledReportRoutes(enterpriseDb, complianceExport, webhookDispatcher));
+  }
+  if (enterpriseReady && createSsoRoutes && isEnabled('sso')) {
+    app.use('/sso', createSsoRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createScimRoutes && isEnabled('scim')) {
+    app.use('/scim', createScimRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createPolicyRoutes && isEnabled('policy')) {
+    app.use('/policies', createPolicyRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createAlertRoutes && isEnabled('alerts')) {
+    app.use('/alerts', createAlertRoutes(enterpriseDb, webhookDispatcher));
+  }
+  if (enterpriseReady && createShadowRoutes && isEnabled('shadow')) {
+    app.use('/shadow', createShadowRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createNetworkRoutes && isEnabled('networkAgent')) {
+    app.use('/network', createNetworkRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createRbacRoutes && isEnabled('rbac')) {
+    app.use('/rbac', createRbacRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createOrganizationRoutes && isEnabled('tenancy')) {
+    app.use('/orgs', createOrganizationRoutes(enterpriseDb));
+  }
+  if (enterpriseReady && createReportingRoutes && isEnabled('reporting')) {
+    app.use('/reports', createReportingRoutes(enterpriseDb, webhookDispatcher));
+  }
+  if (enterpriseReady && createMarketplaceRoutes && isEnabled('marketplace')) {
+    app.use('/marketplace', createMarketplaceRoutes(enterpriseDb));
+  }
+
+  // ── ENTERPRISE DASHBOARD ──────────────────────────────────────
+  app.get('/enterprise', (req, res) => {
+    try {
+      const htmlPath = path.join(__dirname, 'enterprise', 'dashboard', 'index.html');
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      res.type('html').send(html);
+    } catch (e) {
+      res.status(404).json({ error: 'Enterprise dashboard not found' });
+    }
+  });
+
+  // ── AUDIT MIDDLEWARE ─────────────────────────────────────────
+  if (audit) {
+    app.use((req, res, next) => {
+      const start = Date.now();
+      const originalJson = res.json.bind(res);
+      res.json = function(body) {
+        const duration = Date.now() - start;
+        if (req.method === 'POST' && req.path.startsWith('/scrub') && body && body.matchesFound > 0) {
+          try {
+            audit.logScrub({
+              userId: req.headers['x-user-id'] || null,
+              teamId: req.headers['x-team-id'] || null,
+              action: 'scrub',
+              piiTypes: (body.matches || []).map(m => m.type),
+              riskScore: body.riskScore || 0,
+              actionTaken: 'scrubbed',
+              ipAddress: req.ip,
+              userAgent: req.headers['user-agent'] || null,
+              metadata: { endpoint: req.path, duration: duration },
+            });
+          } catch (e) { /* non-blocking */ }
+        }
+        if (req.method === 'POST' && req.path.startsWith('/scan') && body && body.matchesFound > 0) {
+          try {
+            audit.logScan({
+              userId: req.headers['x-user-id'] || null,
+              teamId: req.headers['x-team-id'] || null,
+              action: 'scan',
+              piiTypes: (body.findings || body.matches || []).map(m => m.type),
+              riskScore: body.riskScore || 0,
+              actionTaken: 'detected',
+              ipAddress: req.ip,
+              userAgent: req.headers['user-agent'] || null,
+              metadata: { endpoint: req.path, duration: duration },
+            });
+          } catch (e) { /* non-blocking */ }
+        }
+        return originalJson(body);
+      };
+      next();
+    });
+  }
 
   // ── FILE UPLOAD ENDPOINT ──────────────────────────────────────
   app.use('/scan-file', (req, res, next) => {
@@ -702,7 +1015,40 @@ function startServer(port, configOpts, callback) {
     console.log('  POST /diff      - Show before/after diff');
     console.log('  POST /encrypt   - Encrypt PII with passphrase');
     console.log('  POST /decrypt   - Decrypt [ENC:...] tokens');
+    console.log('  POST /scan-response  - Scan AI response for PII');
+    console.log('  POST /scrub-response - Scrub PII from AI response');
     console.log('  POST /rules/custom - Validate custom rules');
+    if (enterpriseReady) {
+      console.log('  GET  /enterprise         - Enterprise dashboard');
+      console.log('  GET  /audit/events       - Audit trail events');
+      console.log('  POST /audit/export       - Generate compliance report');
+      console.log('  GET  /api-keys           - List API keys');
+      console.log('  POST /api-keys           - Generate API key');
+      console.log('  GET  /teams              - List teams');
+      console.log('  POST /teams              - Create team');
+      console.log('  GET  /scheduled-reports  - List report schedules');
+      console.log('  GET  /webhooks           - List webhooks');
+      console.log('  POST /webhooks           - Create webhook');
+      console.log('  POST /sso/token          - Issue SSO token');
+      console.log('  POST /sso/verify         - Validate SSO token');
+      console.log('  GET  /sso/sessions       - List SSO sessions');
+      console.log('  GET  /scim/v2/Users      - SCIM users (provisioning)');
+      console.log('  GET  /scim/v2/Groups     - SCIM groups');
+      console.log('  GET  /policies           - List data guardrails');
+      console.log('  POST /policies/evaluate  - Evaluate content vs policies');
+      console.log('  GET  /alerts             - List alerts');
+      console.log('  GET  /alerts/rules       - List alert rules');
+      console.log('  GET  /shadow/events      - Shadow mode events');
+      console.log('  GET  /shadow/discover    - Shadow AI discovery');
+      console.log('  GET  /network/events     - Network agent events');
+      console.log('  POST /network/connection - Record network connection');
+      console.log('  GET  /rbac              - RBAC / permissions');
+      console.log('  GET  /orgs              - Multi-tenant organizations');
+      console.log('  GET  /reports/dashboard - Analytics dashboard');
+      console.log('  POST /reports/run       - Generate summary report');
+      console.log('  GET  /marketplace/packs - Rule packs');
+      console.log('  GET  /marketplace/templates - Policy templates');
+    }
     if (configOpts.analytics) {
       console.log('  GET  /analytics - Analytics dashboard');
       console.log('  GET  /api/analytics/* - Analytics API');

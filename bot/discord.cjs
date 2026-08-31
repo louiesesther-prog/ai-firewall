@@ -1,4 +1,4 @@
-const core = require('./core');
+const core = require('./core.cjs');
 
 function startDiscordBot(config) {
   let Client, GatewayIntentBits;

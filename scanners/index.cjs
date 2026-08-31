@@ -10,12 +10,12 @@ async function extractText(filePath, options = {}) {
   const ext = path.extname(filePath).toLowerCase();
 
   if (ext === '.docx') {
-    const docx = require('./docx');
+    const docx = require('./docx.cjs');
     return docx.extract(filePath);
   }
 
   if (ext === '.pdf') {
-    const pdf = require('./pdf');
+    const pdf = require('./pdf.cjs');
     return pdf.extract(filePath);
   }
 
@@ -23,7 +23,7 @@ async function extractText(filePath, options = {}) {
     if (!options.ocr) {
       throw new Error('Image OCR requires --ocr flag (installs tesseract.js)');
     }
-    const ocr = require('./ocr');
+    const ocr = require('./ocr.cjs');
     return ocr.extract(filePath);
   }
 

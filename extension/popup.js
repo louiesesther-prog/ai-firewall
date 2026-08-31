@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   function loadStats() {
-    chrome.storage.local.get(['fw_stats', 'isEnabled', 'enableSound'], function(data) {
+    chrome.storage.local.get(['fw_stats', 'isEnabled', 'enableSound', 'fw_response_scrub'], function(data) {
       var stats = data.fw_stats || { requests: 0, piiDetected: 0, types: {} };
       requestsCount.textContent = stats.requests || 0;
       piiCount.textContent = stats.piiDetected || 0;
@@ -107,6 +107,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       if (data.enableSound !== undefined) {
         soundToggle.checked = data.enableSound;
+      }
+      var responseScrubToggle = document.getElementById('responseScrubToggle');
+      if (responseScrubToggle && data.fw_response_scrub !== undefined) {
+        responseScrubToggle.checked = data.fw_response_scrub;
       }
     });
   }
@@ -174,6 +178,13 @@ document.addEventListener('DOMContentLoaded', function() {
   maskedTextToggle.addEventListener('change', function() {
     chrome.storage.local.set({ showMaskedText: maskedTextToggle.checked });
   });
+  
+  var responseScrubToggle = document.getElementById('responseScrubToggle');
+  if (responseScrubToggle) {
+    responseScrubToggle.addEventListener('change', function() {
+      chrome.storage.local.set({ fw_response_scrub: responseScrubToggle.checked });
+    });
+  }
   
   clearStats.addEventListener('click', function(e) {
     e.preventDefault();

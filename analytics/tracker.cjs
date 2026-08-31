@@ -1,4 +1,10 @@
-const { getDb } = require('./db');
+const { getDb } = require('./db.cjs');
+
+let _webhookDispatcher = null;
+
+function setWebhookDispatcher(dispatcher) {
+  _webhookDispatcher = dispatcher;
+}
 
 function trackScan({ source, filePath, fileType, matches, riskScore, profile, metadata }) {
   try {
@@ -35,6 +41,30 @@ function trackScan({ source, filePath, fileType, matches, riskScore, profile, me
       );
     }
 
+    // Dispatch webhooks if configured
+    if (_webhookDispatcher && matches.length > 0) {
+      try {
+        _webhookDispatcher.dispatchEvent('scan', {
+          source: source || 'cli',
+          filePath: filePath || null,
+          matches: matches,
+          riskScore: riskScore || 0,
+          piiTypes: piiTypes,
+          profile: profile || 'none',
+        });
+      } catch (e) { /* non-blocking */ }
+    }
+
+    if (_webhookDispatcher && riskScore && riskScore > 70) {
+      try {
+        _webhookDispatcher.dispatchEvent('high_risk', {
+          source: source || 'cli',
+          riskScore: riskScore,
+          piiTypes: piiTypes,
+        });
+      } catch (e) { /* non-blocking */ }
+    }
+
     return eventInfo.lastInsertRowid;
   } catch (e) {
     console.warn('[tracker] Analytics write failed:', e.message);
@@ -42,4 +72,4 @@ function trackScan({ source, filePath, fileType, matches, riskScore, profile, me
   }
 }
 
-module.exports = { trackScan };
+module.exports = { trackScan, setWebhookDispatcher };

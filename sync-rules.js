@@ -151,6 +151,27 @@ function updateBrowserBackground(dirName) {
   console.log('  Updated ' + dirName + '/background.js (' + rules.BUILTIN_RULES.length + ' rules)');
 }
 
+// ── Update test-report.mjs ──
+function updateTestReport() {
+  const filePath = path.join(ROOT, 'test-report.mjs');
+  let content = fs.readFileSync(filePath, 'utf8');
+  const browserRules = generateBrowserRules();
+  const browserFakers = generateBrowserFakers();
+
+  const rulesMatch = content.match(/const BUILTIN_RULES = \[[\s\S]*?\];/);
+  if (rulesMatch) {
+    content = content.replace(rulesMatch[0], 'const BUILTIN_RULES = ' + browserRules + ';');
+  }
+
+  const fakersMatch = content.match(/const FAKERS = \{[\s\S]*?\};/);
+  if (fakersMatch) {
+    content = content.replace(fakersMatch[0], 'const FAKERS = ' + browserFakers + ';');
+  }
+
+  fs.writeFileSync(filePath, content, 'utf8');
+  console.log('  Updated test-report.mjs (' + rules.BUILTIN_RULES.length + ' rules)');
+}
+
 // ── Main ──
 console.log('Syncing rules from rules.cjs to all surfaces...');
 console.log('  Rules: ' + rules.BUILTIN_RULES.length + ' PII types');
@@ -164,5 +185,6 @@ try { updateIndexHTML(); } catch (e) { console.error('  Error updating index.htm
 try { updateBrowserBackground('firefox'); } catch (e) { console.error('  Error updating firefox/background.js:', e.message); }
 try { updateBrowserBackground('edge'); } catch (e) { console.error('  Error updating edge/background.js:', e.message); }
 try { updateBrowserBackground('safari'); } catch (e) { console.error('  Error updating safari/background.js:', e.message); }
+try { updateTestReport(); } catch (e) { console.error('  Error updating test-report.mjs:', e.message); }
 
 console.log('\nDone. Run tests to verify: node test-report.mjs');

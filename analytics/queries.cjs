@@ -1,4 +1,4 @@
-const { getDb } = require('./db');
+const { getDb } = require('./db.cjs');
 
 function getTrendData(days = 30) {
   const database = getDb();

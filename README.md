@@ -208,6 +208,19 @@ ai-firewall/
 │   ├── tracker.cjs     # Event recording
 │   ├── queries.cjs     # Dashboard queries
 │   └── dashboard.html  # SVG chart UI
+├── enterprise/         # Enterprise features (Phases 2–5)
+│   ├── feature-flags.cjs  # Per-module flag resolution
+│   ├── routes/            # REST route factories per module
+│   ├── dashboard/         # /enterprise admin web UI
+│   ├── identity/          # SSO, SCIM
+│   ├── policy/            # Policy engine
+│   ├── observability/     # Shadow mode, network agent
+│   ├── auth/              # API keys, RBAC, teams
+│   ├── tenancy/           # Organizations
+│   ├── billing/           # Quotas, scheduled reports
+│   ├── alerts/            # Alerts, webhooks
+│   ├── reporting/         # Advanced reporting
+│   └── marketplace/       # Policy packs & templates
 ├── bot/                # Chat bots
 │   ├── core.cjs        # Platform-agnostic logic
 │   ├── slack.cjs       # Slack adapter
@@ -226,9 +239,68 @@ ai-firewall/
 ## Testing
 
 ```bash
-node test-report.mjs
-# 243/244 tests pass (99.6%)
+node test-report.mjs          # core suite: 242/244 pass (99.2%)
+node test-enterprise.mjs      # enterprise suite: 46/46 pass
 ```
+
+The two "failed" core checks are intentional stricter/strictness cases (`FP20` international
+phone-format gap, `FP25` stricter passport rule), not regressions.
+
+## Enterprise (Phases 2–5)
+
+Enterprise features are gated behind `better-sqlite3` plus feature flags. Each module is
+mounted only when its flag is enabled, and they are exposed through the REST API and the
+web dashboard at `/enterprise`.
+
+### Feature flags
+
+Set `ENTERPRISE_ALL=1` to enable everything, or toggle modules individually via the env
+vars below (explicit flags win over `ENTERPRISE_ALL`; `0`/`false`/`no`/`off`/`` disable a flag).
+
+| Flag | Feature |
+|------|---------|
+| `ENTERPRISE_ALL` | Master switch for all enterprise modules |
+| `ENTERPRISE_API_KEYS` | API key management & per-key quotas |
+| `ENTERPRISE_TEAMS` | Team management |
+| `ENTERPRISE_QUOTAS` | Plan/usage quotas |
+| `ENTERPRISE_SCHEDULED` | Scheduled reports |
+| `ENTERPRISE_SSO` | SSO sign-in |
+| `ENTERPRISE_SCIM` | SCIM user provisioning |
+| `ENTERPRISE_POLICY` | Policy engine (data guardrails) |
+| `ENTERPRISE_ALERTS` | Alert subscriptions/notifications |
+| `ENTERPRISE_WEBHOOKS` | Outbound webhooks |
+| `ENTERPRISE_GUARDRAILS` | Prompt/data guardrails |
+| `ENTERPRISE_SHADOW` | Shadow-mode AI service detection |
+| `ENTERPRISE_RESPONSE_SCAN` | Outbound response scanning |
+| `ENTERPRISE_NETWORK_AGENT` | Network agent observability |
+| `ENTERPRISE_RBAC` | Role-based access control |
+| `ENTERPRISE_TENANCY` | Multi-tenant organizations |
+| `ENTERPRISE_REPORTING` | Advanced/analytics reporting |
+| `ENTERPRISE_MARKETPLACE` | Policy packs & templates marketplace |
+
+Other enterprise options: `AIFW_DB_PATH` (SQLite file for analytics),
+`AIFW_SSO_SIGNING_KEY` (HMAC key for SSO tokens; defaults to a stable internal hash).
+
+### Run with enterprise enabled
+
+```bash
+npm install better-sqlite3          # native module required for enterprise features
+ENTERPRISE_ALL=1 node server.js     # live API + /enterprise dashboard
+```
+
+### Enterprise modules
+
+- **Identity** — SSO (`sso`), SCIM provisioning (`scim`)
+- **Policy** — data-guardrail policy engine (`policy-engine`)
+- **Observability** — shadow-mode AI detection (`shadow-mode`), network agent (`network-agent`)
+- **Access** — API keys (`api-keys`), RBAC (`rbac`), teams (`teams`), organizations/tenancy (`organizations`)
+- **Billing/ops** — quotas (`quotas`), scheduled reports (`scheduled-reports`), alerts (`alerts`), webhooks (`webhooks`)
+- **Reporting** — advanced/analytics reporting (`advanced-reporting`)
+- **Marketplace** — policy packs & templates (`marketplace`)
+- **Dashboard** — single-page admin UI at `/enterprise` (API Keys, Quotas, Audits, Webhooks,
+  Teams, Scheduled, SSO, SCIM, Policies, Alerts, Shadow, Network, Orgs, RBAC, Analytics, Marketplace)
+
+Run `node cli.js enterprise` for CLI subcommands over the same modules.
 
 ## License
 

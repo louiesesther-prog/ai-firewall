@@ -651,26 +651,47 @@ ${body}
 }
 
 // ── ENCRYPT MODE ─────────────────────────────────────────────────
-function encryptValue(text, key) {
-  const salt = crypto.randomBytes(32);
-  const derived = crypto.pbkdf2Sync(key, salt, 100000, 32, 'sha256');
+function encryptValue(text, keyObj) {
+  const key = (keyObj && keyObj.key) ? keyObj.key : keyObj;
+  const outerSalt = (keyObj && keyObj.salt) ? keyObj.salt : null;
+  const innerSalt = crypto.randomBytes(32);
+  const derived = crypto.pbkdf2Sync(key, innerSalt, 100000, 32, 'sha256');
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-gcm', derived, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag().toString('hex');
-  return salt.toString('hex') + ':' + iv.toString('hex') + ':' + authTag + ':' + encrypted;
+  if (outerSalt) {
+    return outerSalt.toString('hex') + ':' + innerSalt.toString('hex') + ':' + iv.toString('hex') + ':' + authTag + ':' + encrypted;
+  }
+  return innerSalt.toString('hex') + ':' + iv.toString('hex') + ':' + authTag + ':' + encrypted;
 }
 
-function decryptValue(encoded, key) {
+function decryptValue(encoded, passphraseOrKey) {
   try {
     const parts = encoded.split(':');
-    if (parts.length !== 4) return null;
-    const salt = Buffer.from(parts[0], 'hex');
-    const iv = Buffer.from(parts[1], 'hex');
-    const authTag = Buffer.from(parts[2], 'hex');
-    const encrypted = parts[3];
-    const derived = crypto.pbkdf2Sync(key, salt, 100000, 32, 'sha256');
+    if (parts.length !== 4 && parts.length !== 5) return null;
+    let outerSalt, innerSalt, iv, authTag, encrypted;
+    if (parts.length === 5) {
+      outerSalt = Buffer.from(parts[0], 'hex');
+      innerSalt = Buffer.from(parts[1], 'hex');
+      iv = Buffer.from(parts[2], 'hex');
+      authTag = parts[3];
+      encrypted = parts[4];
+    } else {
+      innerSalt = Buffer.from(parts[0], 'hex');
+      iv = Buffer.from(parts[1], 'hex');
+      authTag = parts[2];
+      encrypted = parts[3];
+    }
+    let outerKey;
+    if (typeof passphraseOrKey === 'string') {
+      const salt = outerSalt || Buffer.from('legacy-context');
+      outerKey = crypto.pbkdf2Sync(passphraseOrKey, salt, 100000, 32, 'sha256');
+    } else {
+      outerKey = (passphraseOrKey && passphraseOrKey.key) ? passphraseOrKey.key : passphraseOrKey;
+    }
+    const derived = crypto.pbkdf2Sync(outerKey, innerSalt, 100000, 32, 'sha256');
     const decipher = crypto.createDecipheriv('aes-256-gcm', derived, iv);
     decipher.setAuthTag(authTag);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
@@ -681,8 +702,10 @@ function decryptValue(encoded, key) {
   }
 }
 
-function deriveKey(passphrase) {
-  return crypto.pbkdf2Sync(passphrase, 'legacy-context', 100000, 32, 'sha256');
+function deriveKey(passphrase, salt) {
+  if (!salt) salt = crypto.randomBytes(32);
+  const key = crypto.pbkdf2Sync(passphrase, salt, 100000, 32, 'sha256');
+  return { key, salt };
 }
 
 // ── WATCH MODE ────────────────────────────────────────────────────
@@ -831,13 +854,639 @@ async function main() {
     if (!filePath || !passphrase) { console.error('Usage: node cli.js --decrypt <file> <passphrase>'); process.exit(1); }
     try {
       const content = fs.readFileSync(filePath, 'utf8');
-      const key = deriveKey(passphrase);
       const decrypted = content.replace(/\[ENC:([^\]]+)\]/g, (_, enc) => {
-        const val = decryptValue(enc, key);
+        const val = decryptValue(enc, passphrase);
         return val !== null ? val : '[DECRYPT_FAILED]';
       });
       console.log(decrypted);
     } catch (e) { console.error('Decrypt error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── RESPONSE-SCAN COMMAND ────────────────────────────────────
+  if (args[0] === 'response-scan') {
+    let service = 'unknown';
+    let mode = 'warn';
+    let format = 'text';
+    let profile = 'none';
+    let inputFile = null;
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--service') service = args[++i] || 'unknown';
+      else if (args[i] === '--mode') mode = args[++i] || 'warn';
+      else if (args[i] === '--format') format = args[++i] || 'text';
+      else if (args[i] === '--profile') profile = args[++i] || 'none';
+      else if (!args[i].startsWith('-')) inputFile = args[i];
+    }
+
+    const { scanResponse } = require('./scanners/response.cjs');
+    const config = inputFile ? loadConfig() : {};
+    const configRules = resolveRules(config, profile);
+
+    function processInput(text) {
+      const result = scanResponse(text, { service, mode, profile, rules: configRules });
+      if (format === 'json') {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        if (result.findings.length === 0) {
+          console.log('No PII detected in AI response.');
+        } else {
+          console.log('PII detected in AI response (' + result.actionTaken + '):');
+          for (const f of result.findings) {
+            console.log('  [' + f.type + '] ' + f.name + ' (conf: ' + f.confidence.toFixed(2) + '): "' + f.match.substring(0, 50) + '"');
+          }
+          console.log('Risk Score: ' + result.riskScore + '/100');
+        }
+      }
+    }
+
+    if (inputFile) {
+      const text = fs.readFileSync(inputFile, 'utf8');
+      processInput(text);
+    } else if (!process.stdin.isTTY) {
+      const chunks = [];
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', (c) => chunks.push(c));
+      process.stdin.on('end', () => processInput(chunks.join('')));
+    } else {
+      console.error('Usage: ai-firewall response-scan [--service chatgpt] [--mode warn|scrub] [--format text|json] [file]');
+      console.error('       cat ai-output.txt | ai-firewall response-scan --service claude');
+      process.exit(1);
+    }
+    return;
+  }
+
+  function getArgVal(anArgs, flag) {
+    const idx = anArgs.indexOf(flag);
+    return idx !== -1 && anArgs[idx + 1] ? anArgs[idx + 1] : null;
+  }
+
+  // ── AUDIT COMMAND ────────────────────────────────────────────
+  if (args[0] === 'audit') {
+    const subcmd = args[1] || 'events';
+    let reportType = 'gdpr_art30';
+    let periodStart = '';
+    let periodEnd = '';
+    let limit = 50;
+    let format = 'json';
+    let retentionDays = 365;
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--type') reportType = args[++i] || 'gdpr_art30';
+      else if (args[i] === '--from') periodStart = args[++i] || '';
+      else if (args[i] === '--to') periodEnd = args[++i] || '';
+      else if (args[i] === '--limit') limit = parseInt(args[++i], 10) || 50;
+      else if (args[i] === '--format') format = args[++i] || 'json';
+      else if (args[i] === '--retention-days') retentionDays = parseInt(args[++i], 10) || 365;
+      else if (args[i] === '--older-than') retentionDays = parseInt(args[++i], 10) || 365;
+    }
+
+    const { getDb } = require('./analytics/db.cjs');
+    const db = getDb();
+
+    if (subcmd === 'export') {
+      try {
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const { init: initAudit, getEvents } = require('./enterprise/audit/audit.cjs');
+        initAudit(db);
+        const { init: initExport, generateReport } = require('./enterprise/audit/compliance-export.cjs');
+        initExport(db);
+
+        if (!periodStart || !periodEnd) {
+          periodStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          periodEnd = new Date().toISOString().split('T')[0];
+        }
+
+        const report = generateReport({ reportType, periodStart, periodEnd, generatedBy: 'cli' });
+        if (format === 'json') {
+          console.log(JSON.stringify(report, null, 2));
+        } else {
+          console.log('Compliance Report: ' + reportType.toUpperCase());
+          console.log('Period: ' + periodStart + ' to ' + periodEnd);
+          console.log('Events: ' + report.eventCount);
+          console.log('Generated: ' + report.generatedAt);
+        }
+      } catch (e) {
+        console.error('Audit export error:', e.message);
+        process.exit(1);
+      }
+    } else if (subcmd === 'retention') {
+      try {
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const { init: initRetention, cleanupExpired, getRetentionStats } = require('./enterprise/audit/retention.cjs');
+        initRetention(db);
+        const stats = getRetentionStats();
+        console.log('Audit Retention Stats:');
+        console.log('  Audit events: ' + (stats.auditEvents || 0));
+        console.log('  Compliance reports: ' + (stats.complianceReports || 0));
+        console.log('  Oldest event: ' + (stats.oldestEvent || 'none'));
+        console.log('  Newest event: ' + (stats.newestEvent || 'none'));
+
+        if (args.includes('--cleanup')) {
+          const result = cleanupExpired(retentionDays);
+          console.log('\nCleanup completed (retention: ' + retentionDays + ' days)');
+          console.log('  Deleted: ' + result.deleted + ' events');
+        }
+      } catch (e) {
+        console.error('Audit retention error:', e.message);
+        process.exit(1);
+      }
+    } else {
+      // Default: list events
+      try {
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const { init: initAudit, getEvents, getEventCount } = require('./enterprise/audit/audit.cjs');
+        initAudit(db);
+        const total = getEventCount({ limit: 999999 });
+        const events = getEvents({ limit });
+        if (format === 'json') {
+          console.log(JSON.stringify({ total, events }, null, 2));
+        } else {
+          console.log('Audit Events (' + events.length + ' of ' + total + '):');
+          for (const e of events) {
+            console.log('  [' + e.timestamp + '] ' + e.action + ' by ' + (e.user_id || 'system') + ' - risk:' + (e.risk_score || 0));
+          }
+        }
+      } catch (e) {
+        console.error('Audit events error:', e.message);
+        process.exit(1);
+      }
+    }
+    return;
+  }
+
+  // ── API-KEY COMMAND ──────────────────────────────────────────
+  if (args[0] === 'api-key') {
+    const subcmd = args[1] || 'list';
+    const teamId = getArgVal(args, '--team') || null;
+    if (subcmd === 'generate' || subcmd === 'create') {
+      if (!teamId) { console.error('Usage: ai-firewall api-key generate --team <teamId> [--name "My Key"]'); process.exit(1); }
+      const name = getArgVal(args, '--name') || 'API Key';
+      const quota = parseInt(getArgVal(args, '--quota'), 10) || 10000;
+      try {
+        const { getDb } = require('./analytics/db.cjs');
+        const db = getDb();
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const apiKeys = require('./enterprise/auth/api-keys.cjs');
+        apiKeys.init(db);
+        const key = apiKeys.generateKey(teamId, { name: name, quotaDaily: quota, createdBy: 'cli' });
+        console.log('API Key generated:');
+        console.log('  ID:     ' + key.id);
+        console.log('  Key:    ' + key.key);
+        console.log('  Name:   ' + key.name);
+        console.log('  Quota:  ' + key.quotaDaily + ' requests/day');
+        console.log('\n⚠  Save this key now — it will not be shown again.');
+      } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    } else if (subcmd === 'list') {
+      if (!teamId) { console.error('Usage: ai-firewall api-key list --team <teamId>'); process.exit(1); }
+      try {
+        const { getDb } = require('./analytics/db.cjs');
+        const db = getDb();
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const apiKeys = require('./enterprise/auth/api-keys.cjs');
+        apiKeys.init(db);
+        const keys = apiKeys.listKeys(teamId);
+        if (keys.length === 0) { console.log('No API keys for this team.'); return; }
+        console.log('API Keys (' + keys.length + '):');
+        for (const k of keys) {
+          console.log('  [' + k.id + '] ' + k.name + ' (' + k.key_prefix + '...) ' + (k.revoked_at ? 'REVOKED' : k.enabled ? 'Active' : 'Disabled'));
+        }
+      } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    } else if (subcmd === 'revoke') {
+      const keyId = args[2];
+      if (!keyId) { console.error('Usage: ai-firewall api-key revoke <keyId>'); process.exit(1); }
+      try {
+        const { getDb } = require('./analytics/db.cjs');
+        const db = getDb();
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const apiKeys = require('./enterprise/auth/api-keys.cjs');
+        apiKeys.init(db);
+        apiKeys.revokeKey(keyId);
+        console.log('API key ' + keyId + ' revoked.');
+      } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    } else {
+      console.error('Usage: ai-firewall api-key <generate|list|revoke> [options]');
+      process.exit(1);
+    }
+    return;
+  }
+
+  // ── TEAM COMMAND ─────────────────────────────────────────────
+  if (args[0] === 'team') {
+    const subcmd = args[1] || 'list';
+
+    if (subcmd === 'create') {
+      const name = args[2];
+      if (!name) { console.error('Usage: ai-firewall team create <name> [--plan pro]'); process.exit(1); }
+      const plan = getArgVal(args, '--plan') || 'free';
+      try {
+        const { getDb } = require('./analytics/db.cjs');
+        const db = getDb();
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const teams = require('./enterprise/auth/teams.cjs');
+        teams.init(db);
+        const team = teams.createTeam({ name: name, plan: plan, creatorId: 'cli' });
+        console.log('Team created:');
+        console.log('  ID:   ' + team.id);
+        console.log('  Name: ' + team.name);
+        console.log('  Slug: ' + team.slug);
+        console.log('  Plan: ' + team.plan);
+      } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    } else if (subcmd === 'list') {
+      try {
+        const { getDb } = require('./analytics/db.cjs');
+        const db = getDb();
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const teams = require('./enterprise/auth/teams.cjs');
+        teams.init(db);
+        const teamList = teams.listTeams();
+        if (teamList.length === 0) { console.log('No teams yet.'); return; }
+        console.log('Teams (' + teamList.length + '):');
+        for (const t of teamList) {
+          console.log('  [' + t.id + '] ' + t.name + ' (' + t.slug + ') — ' + t.plan);
+        }
+      } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    } else if (subcmd === 'members') {
+      const teamId = args[2];
+      if (!teamId) { console.error('Usage: ai-firewall team members <teamId>'); process.exit(1); }
+      try {
+        const { getDb } = require('./analytics/db.cjs');
+        const db = getDb();
+        const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+        initEnterpriseSchema(db);
+        const teams = require('./enterprise/auth/teams.cjs');
+        teams.init(db);
+        const members = teams.listMembers(teamId);
+        if (members.length === 0) { console.log('No members in this team.'); return; }
+        console.log('Team Members (' + members.length + '):');
+        for (const m of members) {
+          console.log('  ' + m.user_id + ' (' + m.role + ')' + (m.email ? ' <' + m.email + '>' : ''));
+        }
+      } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    } else {
+      console.error('Usage: ai-firewall team <create|list|members> [options]');
+      process.exit(1);
+    }
+    return;
+  }
+
+  // ── SSO COMMAND ──────────────────────────────────────────────
+  if (args[0] === 'sso') {
+    const subcmd = args[1] || 'status';
+    const teamId = getArgVal(args, '--team') || null;
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const sso = require('./enterprise/identity/sso.cjs');
+      sso.init(db);
+      if (subcmd === 'token') {
+        if (!teamId) { console.error('Usage: ai-firewall sso token --team <teamId> [--user userId] [--email e]'); process.exit(1); }
+        const userId = getArgVal(args, '--user') || 'cli-user';
+        const email = getArgVal(args, '--email') || null;
+        const token = sso.issueToken(teamId, { subject: userId, email: email, scopes: ['scrub', 'scan'] });
+        console.log('SSO Token issued:');
+        console.log('  sessionId: ' + token.sessionId);
+        console.log('  expiresAt: ' + token.expiresAt);
+        console.log('  token:');
+        console.log('    ' + token.token);
+      } else if (subcmd === 'sessions') {
+        if (!teamId) { console.error('Usage: ai-firewall sso sessions --team <teamId>'); process.exit(1); }
+        const sessions = sso.listSessions(teamId);
+        if (sessions.length === 0) { console.log('No active sessions.'); return; }
+        console.log('SSO Sessions (' + sessions.length + '):');
+        for (const s of sessions) console.log('  [' + s.id + '] ' + (s.email || s.user_id) + ' (' + s.token_type + ') issued ' + s.issued_at);
+      } else {
+        console.log('SSO module active. Commands: token, sessions');
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── SCIM COMMAND ─────────────────────────────────────────────
+  if (args[0] === 'scim') {
+    const subcmd = args[1] || 'users';
+    const teamId = getArgVal(args, '--team') || null;
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const scim = require('./enterprise/identity/scim.cjs');
+      scim.init(db);
+      if (subcmd === 'user-create') {
+        const userName = getArgVal(args, '--username');
+        const email = getArgVal(args, '--email');
+        if (!userName) { console.error('Usage: ai-firewall scim user-create --username <name> [--email e]'); process.exit(1); }
+        const user = scim.createUser(teamId, { userName: userName, emails: [{ value: email }], displayName: userName });
+        console.log('SCIM User created: ' + user.id + ' (' + user.userName + ')');
+      } else if (subcmd === 'users') {
+        const result = scim.listUsers(teamId);
+        console.log('SCIM Users (' + result.totalResults + '):');
+        for (const u of result.Resources) console.log('  [' + u.id + '] ' + u.userName + (u.active ? ' (active)' : ' (inactive)'));
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── POLICY COMMAND ───────────────────────────────────────────
+  if (args[0] === 'policy') {
+    const subcmd = args[1] || 'list';
+    const teamId = getArgVal(args, '--team') || null;
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const policy = require('./enterprise/policy/policy-engine.cjs');
+      policy.init(db);
+      if (subcmd === 'list') {
+        const policies = policy.listPolicies(teamId, { includeDisabled: true });
+        if (policies.length === 0) { console.log('No policies defined.'); return; }
+        console.log('Policies (' + policies.length + '):');
+        for (const p of policies) console.log('  [' + p.id + '] ' + p.name + ' -> ' + p.action + ' [' + p.scope + '] ' + (p.enabled ? 'enabled' : 'disabled') + ' priority ' + p.priority);
+      } else if (subcmd === 'create') {
+        const name = getArgVal(args, '--name');
+        const action = getArgVal(args, '--action') || 'deny';
+        if (!name) { console.error('Usage: ai-firewall policy create --name <name> [--action allow|deny|redact|quarantine]'); process.exit(1); }
+        const p = policy.createPolicy({ name: name, action: action, teamId: teamId, conditions: { piiTypes: ['*'] } });
+        console.log('Policy created: ' + p.id + ' (' + p.name + ', ' + p.action + ')');
+      } else if (subcmd === 'evaluate') {
+        const text = getArgVal(args, '--text');
+        if (!text) { console.error('Usage: ai-firewall policy evaluate --text "..."'); process.exit(1); }
+        const decision = policy.evaluate({ teamId: teamId, text: text, piiTypes: ['*'], riskScore: 80, scope: 'outbound', channel: 'all' });
+        console.log('Decision: ' + (decision.action || 'allow') + (decision.matched ? ' (matched policy)' : ' (no match)'));
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── ALERT COMMAND ────────────────────────────────────────────
+  if (args[0] === 'alert') {
+    const subcmd = args[1] || 'list';
+    const teamId = getArgVal(args, '--team') || null;
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const alertService = require('./enterprise/alerts/alerts.cjs');
+      alertService.init(db, null);
+      if (subcmd === 'list') {
+        const alerts = alertService.listAlerts(teamId);
+        if (alerts.length === 0) { console.log('No alerts.'); return; }
+        console.log('Alerts (' + alerts.length + '):');
+        for (const a of alerts) console.log('  [' + a.id + '] ' + a.severity.toUpperCase() + ' ' + a.title + ' (' + a.status + ')');
+      } else if (subcmd === 'rules') {
+        const rules = alertService.listRules(teamId, { includeDisabled: true });
+        if (rules.length === 0) { console.log('No alert rules.'); return; }
+        console.log('Alert Rules (' + rules.length + '):');
+        for (const r of rules) console.log('  [' + r.id + '] ' + r.name + ' on:' + r.event_type + ' sev:' + r.severity + ' ' + (r.enabled ? 'enabled' : 'disabled'));
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── SHADOW COMMAND ───────────────────────────────────────────
+  if (args[0] === 'shadow') {
+    const teamId = getArgVal(args, '--team') || null;
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const shadow = require('./enterprise/observability/shadow-mode.cjs');
+      shadow.init(db);
+      if (args[1] === 'discover') {
+        const byService = shadow.discoverShadowAI(teamId);
+        console.log('Shadow AI discovery:');
+        for (const s of byService) console.log('  ' + s.ai_service + ': ' + s.events + ' events' + (s.pii_events ? ' (' + s.pii_events + ' with PII)' : ''));
+      } else {
+        const summary = shadow.getSummary(teamId);
+        console.log('Shadow Mode summary:');
+        console.log('  Events: ' + summary.totalEvents);
+        console.log('  With PII: ' + summary.piiEvents);
+        console.log('  Distinct AI services: ' + summary.distinctServices);
+        console.log('  Distinct users: ' + summary.distinctUsers);
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── NETWORK COMMAND ──────────────────────────────────────────
+  if (args[0] === 'network') {
+    const teamId = getArgVal(args, '--team') || null;
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const agent = require('./enterprise/observability/network-agent.cjs');
+      agent.init(db);
+      if (args[1] === 'analyze') {
+        const payload = getArgVal(args, '--payload');
+        if (!payload) { console.error('Usage: ai-firewall network analyze --payload "..."'); process.exit(1); }
+        const result = agent.analyzePayload(payload);
+        console.log('Payload analysis: ' + (result.piiTypes.length ? result.piiTypes.join(', ') : 'no PII') + ' (risk ' + result.riskScore + ')');
+      } else {
+        const summary = agent.getSummary(teamId);
+        console.log('Network Agent summary:');
+        console.log('  Status: ' + summary.status);
+        console.log('  Connections: ' + summary.totalConnections);
+        console.log('  AI service connections: ' + summary.aiServiceConnections);
+        console.log('  PII payloads: ' + summary.piiPayloads);
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── ORG COMMAND (multi-tenancy) ──────────────────────────────
+  if (args[0] === 'org') {
+    const subcmd = args[1] || 'list';
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const orgs = require('./enterprise/tenancy/organizations.cjs');
+      orgs.init(db);
+      if (subcmd === 'create') {
+        const name = getArgVal(args, '--name');
+        if (!name) { console.error('Usage: ai-firewall org create --name <name> [--plan pro]'); process.exit(1); }
+        const org = orgs.createOrganization({ name: name, plan: getArgVal(args, '--plan') || 'free', createdBy: 'cli', creatorId: getArgVal(args, '--owner') || 'cli-admin' });
+        console.log('Organization created:');
+        console.log('  ID:   ' + org.id);
+        console.log('  Name: ' + org.name);
+        console.log('  Slug: ' + org.slug);
+        console.log('  Plan: ' + org.plan);
+      } else if (subcmd === 'list') {
+        const list = orgs.listOrganizations();
+        if (list.length === 0) { console.log('No organizations.'); return; }
+        console.log('Organizations (' + list.length + '):');
+        for (const o of list) console.log('  [' + o.id + '] ' + o.name + ' (' + o.slug + ') plan:' + o.plan + ' status:' + o.status);
+      } else if (subcmd === 'link-team') {
+        const orgId = args[2], teamId = getArgVal(args, '--team');
+        if (!orgId || !teamId) { console.error('Usage: ai-firewall org link-team <orgId> --team <teamId>'); process.exit(1); }
+        orgs.addTeamToOrg(orgId, teamId);
+        console.log('Team ' + teamId + ' linked to org ' + orgId);
+      } else if (subcmd === 'teams') {
+        const orgId = args[2];
+        if (!orgId) { console.error('Usage: ai-firewall org teams <orgId>'); process.exit(1); }
+        const teams = orgs.listOrgTeams(orgId);
+        if (teams.length === 0) { console.log('No teams in this org.'); return; }
+        console.log('Org Teams (' + teams.length + '):');
+        for (const t of teams) console.log('  [' + t.id + '] ' + t.name + ' (' + t.slug + ')');
+      } else {
+        console.error('Usage: ai-firewall org <create|list|link-team|teams>');
+        process.exit(1);
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── RBAC / PERMISSION COMMAND ────────────────────────────────
+  if (args[0] === 'perm' || args[0] === 'rbac') {
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const rbac = require('./enterprise/auth/rbac.cjs');
+      rbac.init(db);
+      const subcmd = args[1] || 'seed';
+      if (subcmd === 'seed') {
+        rbac.ensureSeedPermissions();
+        console.log('RBAC permissions & role mappings seeded.');
+      } else if (subcmd === 'grant') {
+        const teamId = getArgVal(args, '--team');
+        const user = getArgVal(args, '--user');
+        const perm = getArgVal(args, '--perm');
+        if (!teamId || !user || !perm) { console.error('Usage: ai-firewall perm grant --team <t> --user <u> --perm <p.read> [--deny]'); process.exit(1); }
+        const deny = getArgVal(args, '--deny') === 'true' ? false : true;
+        rbac.setMemberPermission(teamId, user, perm, deny);
+        console.log((deny ? 'Granted' : 'Denied') + ' ' + perm + ' to ' + user + ' in ' + teamId);
+      } else if (subcmd === 'check') {
+        const teamId = getArgVal(args, '--team');
+        const user = getArgVal(args, '--user');
+        const perm = getArgVal(args, '--perm');
+        if (!teamId || !user || !perm) { console.error('Usage: ai-firewall perm check --team <t> --user <u> --perm <p.read>'); process.exit(1); }
+        const allowed = rbac.hasPermission(teamId, user, perm);
+        console.log((allowed ? 'ALLOWED' : 'DENIED') + ': ' + user + ' ' + perm + ' in ' + teamId);
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── MARKETPLACE COMMAND ──────────────────────────────────────
+  if (args[0] === 'marketplace' || args[0] === 'market') {
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const market = require('./enterprise/marketplace/marketplace.cjs');
+      market.init(db, null);
+      market.seedBuiltins();
+      const subcmd = args[1] || 'packs';
+      if (subcmd === 'packs') {
+        const packs = market.listPacks();
+        if (packs.length === 0) { console.log('No rule packs.'); return; }
+        console.log('Rule Packs (' + packs.length + '):');
+        for (const p of packs) console.log('  [' + p.slug + '] ' + p.name + ' (' + p.category + ') ' + p.rules_count + ' rules ' + (p.installed === 1 ? 'INSTALLED' : ''));
+      } else if (subcmd === 'templates') {
+        const templates = market.listTemplates();
+        if (templates.length === 0) { console.log('No templates.'); return; }
+        console.log('Policy Templates (' + templates.length + '):');
+        for (const t of templates) console.log('  [' + t.slug + '] ' + t.name + ' -> ' + t.action + ' (' + t.category + ')');
+      } else if (subcmd === 'install') {
+        const slug = args[2];
+        if (!slug) { console.error('Usage: ai-firewall marketplace install <slug>'); process.exit(1); }
+        const result = market.installPack(slug);
+        console.log(result.error || ('Installed ' + slug + ' (' + result.rulesInstalled + ' rules)'));
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  // ── REPORT COMMAND (advanced analytics) ──────────────────────
+  if (args[0] === 'report') {
+    const teamId = getArgVal(args, '--team') || null;
+    const period = getArgVal(args, '--period') || '30d';
+    try {
+      const { getDb } = require('./analytics/db.cjs');
+      const db = getDb();
+      const { initEnterpriseSchema } = require('./enterprise/db.cjs');
+      initEnterpriseSchema(db);
+      const reporting = require('./enterprise/analytics/advanced-reporting.cjs');
+      reporting.init(db, null, null);
+      if (args[1] === 'summary') {
+        const md = reporting.generateSummaryReport(teamId, period);
+        console.log(md);
+      } else if (args[1] === 'pii-types') {
+        const types = reporting.piiTypeDistribution(teamId, period);
+        if (types.length === 0) { console.log('No PII detected in period.'); return; }
+        console.log('PII type distribution (' + period + '):');
+        for (const t of types) console.log('  ' + t.piiType + ': ' + t.count);
+      } else {
+        const d = reporting.dashboard(teamId, period);
+        console.log('Analytics dashboard (' + period + '):');
+        console.log('  Detections: ' + d.detections.length + ' days of data');
+        console.log('  Top services: ' + (d.topServices.length ? d.topServices.map(s => s.service + '(' + s.events + ')').join(', ') : 'none'));
+        console.log('  PII types: ' + (d.piiTypes.length ? d.piiTypes.slice(0, 5).map(p => p.piiType + ':' + p.count).join(', ') : 'none'));
+      }
+    } catch (e) { console.error('Error:', e.message); process.exit(1); }
+    return;
+  }
+
+  if (args[0] === 'license') {
+    const lic = require('./enterprise/license.cjs');
+    const sub = args[1] || 'status';
+    if (sub === 'generate') {
+      const tier = getArgVal(args, '--tier') || 'enterprise';
+      const org = getArgVal(args, '--org') || process.env.AIFW_LICENSE_ORG || 'Acme';
+      const seats = parseInt(getArgVal(args, '--seats') || '0', 10) || 0;
+      const expDays = parseInt(getArgVal(args, '--days') || '365', 10) || 365;
+      try {
+        const key = lic.createKey({ tier, org, seats, expDays });
+        console.log(key);
+      } catch (e) { console.error('Error:', e.message); process.exit(1); }
+      return;
+    }
+    if (sub === 'verify') {
+      const k = getArgVal(args, '--key') || lic.loadKey();
+      if (!k) { console.log('No license key configured (community tier).'); return; }
+      try {
+        const lic2 = lic.verifyKey(k);
+        console.log('Tier      : ' + lic2.tier);
+        console.log('Org       : ' + lic2.org);
+        console.log('Seats     : ' + lic2.seats);
+        console.log('Issued    : ' + new Date(lic2.issued).toISOString());
+        console.log('Expires   : ' + (lic2.exp ? new Date(lic2.exp).toISOString() : 'never'));
+        console.log('Status    : valid');
+      } catch (e) { console.log('Status    : ' + (e.code || 'invalid')); console.log('Reason    : ' + e.message); process.exit(1); }
+      return;
+    }
+    // status
+    const lic2 = lic.current();
+    console.log('Tier      : ' + lic2.tier);
+    console.log('Unlocked  : ' + (lic2.unlocked ? 'yes' : 'no'));
+    if (lic2.license) {
+      console.log('Org       : ' + lic2.license.org);
+      console.log('Seats     : ' + lic2.license.seats);
+      console.log('Expires   : ' + (lic2.license.exp ? new Date(lic2.license.exp).toISOString() : 'never'));
+    } else {
+      console.log('Reason    : ' + (lic2.reason || 'no-key') + (lic2.error ? ' — ' + lic2.error : ''));
+    }
+    const ff = require('./enterprise/feature-flags.cjs');
+    const enabled = Object.keys(ff.getAllFlags()).filter(f => ff.isEnabled(f));
+    console.log('Enabled   : ' + (enabled.length ? enabled.join(', ') : 'none (community tier)'));
     return;
   }
 

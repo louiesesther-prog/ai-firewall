@@ -2,7 +2,7 @@ const { scrub, computeRiskScore } = require('../cli');
 const { BUILTIN_RULES, COMPLIANCE_PROFILES } = require('../rules.cjs');
 
 let trackScan = null;
-try { trackScan = require('../analytics/tracker').trackScan; } catch (e) { /* analytics optional */ }
+try { trackScan = require('../analytics/tracker.cjs').trackScan; } catch (e) { /* analytics optional */ }
 
 function scanText(text, options = {}) {
   let rules = options.rules || BUILTIN_RULES;

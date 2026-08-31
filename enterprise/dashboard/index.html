@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Firewall — Enterprise Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  .header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #1e293b; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; color: #38bdf8; }
+  .header .nav { display: flex; gap: 16px; }
+  .header .nav a { color: #94a3b8; text-decoration: none; font-size: 13px; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+  .header .nav a:hover, .header .nav a.active { color: #38bdf8; background: rgba(56,189,248,0.1); }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+  .card h3 { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .card .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
+  .card .value.blue { color: #38bdf8; }
+  .card .value.green { color: #4ade80; }
+  .card .value.yellow { color: #facc15; }
+  .card .value.red { color: #f87171; }
+  .card .sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .section { margin-bottom: 32px; }
+  .section h2 { font-size: 16px; color: #f8fafc; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #1e293b; font-size: 13px; }
+  th { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+  td { color: #cbd5e1; }
+  tr:hover td { background: rgba(56,189,248,0.03); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .badge-red { background: rgba(248,113,113,0.15); color: #f87171; }
+  .badge-yellow { background: rgba(250,204,21,0.15); color: #facc15; }
+  .badge-blue { background: rgba(56,189,248,0.15); color: #38bdf8; }
+  .btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: #38bdf8; color: #0f172a; }
+  .btn-primary:hover { background: #7dd3fc; }
+  .btn-danger { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+  .btn-danger:hover { background: rgba(248,113,113,0.25); }
+  .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+  .btn-ghost:hover { background: #1e293b; color: #f8fafc; }
+  .empty { text-align: center; padding: 40px; color: #64748b; font-size: 14px; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  input[type="text"], input[type="number"], select { background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; padding: 8px 12px; font-size: 13px; outline: none; }
+  input:focus, select:focus { border-color: #38bdf8; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; max-width: 480px; width: 100%; }
+  .modal h2 { font-size: 16px; margin-bottom: 16px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+  .form-group input, .form-group select { width: 100%; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .loading { color: #64748b; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🛡️ AI Firewall Enterprise</h1>
+  <div class="nav">
+    <a href="#" class="active" onclick="showTab('overview')">Overview</a>
+    <a href="#" onclick="showTab('apikeys')">API Keys</a>
+    <a href="#" onclick="showTab('teams')">Teams</a>
+    <a href="#" onclick="showTab('reports')">Reports</a>
+    <a href="#" onclick="showTab('webhooks')">Webhooks</a>
+    <a href="#" onclick="showTab('orgs')">Orgs</a>
+    <a href="#" onclick="showTab('rbac')">RBAC</a>
+    <a href="#" onclick="showTab('analytics')">Analytics</a>
+    <a href="#" onclick="showTab('marketplace')">Marketplace</a>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Overview Tab -->
+  <div id="tab-overview">
+    <div class="grid" id="stats-grid">
+      <div class="card"><h3>Total API Keys</h3><div class="value blue" id="stat-keys">-</div><div class="sub">across all teams</div></div>
+      <div class="card"><h3>Requests Today</h3><div class="value green" id="stat-requests">-</div><div class="sub">scrub + scan operations</div></div>
+      <div class="card"><h3>PII Detections</h3><div class="value yellow" id="stat-detections">-</div><div class="sub">items masked</div></div>
+      <div class="card"><h3>Teams</h3><div class="value" id="stat-teams">-</div><div class="sub">organizations</div></div>
+    </div>
+
+    <div class="section">
+      <h2>Recent Audit Events</h2>
+      <div id="audit-list"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- API Keys Tab -->
+  <div id="tab-apikeys" style="display:none">
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="showCreateKey()">+ Generate API Key</button>
+      <input type="text" id="filter-team" placeholder="Filter by team ID..." onchange="loadApiKeys()">
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Prefix</th><th>Scopes</th><th>Rate Limit</th><th>Daily Quota</th><th>Status</th><th>Last Used</th><th>Actions</th></tr></thead>
+        <tbody id="apikey-table"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Teams Tab -->
+  <div id="tab-teams" style="display:none">
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="showCreateTeam()">+ Create Team</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Slug</th><th>Plan</th><th>Members</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody id="team-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Reports Tab -->
+  <div id="tab-reports" style="display:none">
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="showCreateSchedule()">+ Schedule Report</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Type</th><th>Schedule</th><th>Last Run</th><th>Next Run</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="schedule-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Webhooks Tab -->
+  <div id="tab-webhooks" style="display:none">
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>URL</th><th>Events</th><th>Enabled</th><th>Failures</th><th>Last Triggered</th><th>Actions</th></tr></thead>
+        <tbody id="webhook-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Organizations Tab -->
+  <div id="tab-orgs" style="display:none">
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Slug</th><th>Plan</th><th>Status</th><th>Teams</th><th>Created</th></tr></thead>
+        <tbody id="org-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RBAC Tab -->
+  <div id="tab-rbac" style="display:none">
+    <div class="section"><h2>Default Role → Permission Matrix</h2><div id="rbac-matrix"><div class="loading">Loading...</div></div></div>
+  </div>
+
+  <!-- Analytics Tab -->
+  <div id="tab-analytics" style="display:none">
+    <div class="grid" id="analytics-stats">
+      <div class="card"><h3>Detection Trend</h3><div class="sub" id="an-detect">-</div></div>
+      <div class="card"><h3>Top AI Services</h3><div class="sub" id="an-services">-</div></div>
+      <div class="card"><h3>Alert Severity</h3><div class="sub" id="an-alerts">-</div></div>
+      <div class="card"><h3>PII Distribution</h3><div class="sub" id="an-pii">-</div></div>
+    </div>
+    <div class="section"><h2>Compliance Summary Report</h2><pre id="an-report" style="background:#f6f8fa;padding:12px;border-radius:8px;white-space:pre-wrap;font-size:13px;"><div class="loading">Loading...</div></pre></div>
+  </div>
+
+  <!-- Marketplace Tab -->
+  <div id="tab-marketplace" style="display:none">
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="loadPacks()">Refresh Packs</button>
+    </div>
+    <div class="section"><h2>Rule Packs</h2><div id="pack-list"><div class="loading">Loading...</div></div></div>
+    <div class="section"><h2>Policy Templates</h2><div id="template-list"></div></div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modal-create-key">
+  <div class="modal">
+    <h2>Generate API Key</h2>
+    <div class="form-group"><label>Name</label><input type="text" id="key-name" placeholder="Production Key"></div>
+    <div class="form-group"><label>Team ID</label><input type="text" id="key-team" placeholder="tm_..."></div>
+    <div class="form-group"><label>Scopes (comma-separated)</label><input type="text" id="key-scopes" value="scrub,scan"></div>
+    <div class="form-group"><label>Daily Quota</label><input type="number" id="key-quota" value="10000"></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-key')">Cancel</button>
+      <button class="btn btn-primary" onclick="createApiKey()">Generate</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-create-team">
+  <div class="modal">
+    <h2>Create Team</h2>
+    <div class="form-group"><label>Name</label><input type="text" id="team-name" placeholder="Acme Corp"></div>
+    <div class="form-group"><label>Plan</label><select id="team-plan"><option value="free">Free</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-team')">Cancel</button>
+      <button class="btn btn-primary" onclick="createTeam()">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-create-schedule">
+  <div class="modal">
+    <h2>Schedule Compliance Report</h2>
+    <div class="form-group"><label>Name</label><input type="text" id="sched-name" placeholder="Monthly SOC 2"></div>
+    <div class="form-group"><label>Report Type</label><select id="sched-type"><option value="soc2">SOC 2</option><option value="gdpr_art30">GDPR Art. 30</option><option value="hipaa">HIPAA</option></select></div>
+    <div class="form-group"><label>Schedule (cron)</label><input type="text" id="sched-cron" value="0 0 1 * *" placeholder="0 0 1 * *"></div>
+    <div class="form-group"><label>Team ID</label><input type="text" id="sched-team" placeholder="tm_..."></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-schedule')">Cancel</button>
+      <button class="btn btn-primary" onclick="createSchedule()">Schedule</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-key-result">
+  <div class="modal">
+    <h2>API Key Generated</h2>
+    <p style="color:#f87171;font-size:13px;margin-bottom:12px">⚠ Save this key now — it will not be shown again.</p>
+    <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;color:#4ade80" id="key-result-value"></div>
+    <div class="form-actions"><button class="btn btn-primary" onclick="closeModal('modal-key-result')">Done</button></div>
+  </div>
+</div>
+
+<script>
+var BASE = '';
+
+function api(method, path, body) {
+  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(BASE + path, opts).then(function(r) { return r.json(); });
+}
+
+function showTab(name) {
+  document.querySelectorAll('[id^="tab-"]').forEach(function(el) { el.style.display = 'none'; });
+  document.getElementById('tab-' + name).style.display = 'block';
+  document.querySelectorAll('.nav a').forEach(function(a) { a.classList.remove('active'); });
+  event.target.classList.add('active');
+  if (name === 'overview') loadOverview();
+  else if (name === 'apikeys') loadApiKeys();
+  else if (name === 'teams') loadTeams();
+  else if (name === 'reports') loadSchedules();
+  else if (name === 'webhooks') loadWebhooks();
+  else if (name === 'orgs') loadOrgs();
+  else if (name === 'rbac') loadRbacMatrix();
+  else if (name === 'analytics') loadAnalytics();
+  else if (name === 'marketplace') loadPacks();
+}
+
+function showCreateKey() { document.getElementById('modal-create-key').classList.add('show'); }
+function showCreateTeam() { document.getElementById('modal-create-team').classList.add('show'); }
+function showCreateSchedule() { document.getElementById('modal-create-schedule').classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function loadOverview() {
+  api('GET', '/audit/events?limit=5').then(function(data) {
+    var el = document.getElementById('audit-list');
+    if (!data.events || data.events.length === 0) { el.innerHTML = '<div class="empty">No audit events yet</div>'; return; }
+    var html = '<table><thead><tr><th>Time</th><th>Action</th><th>User</th><th>Risk</th></tr></thead><tbody>';
+    data.events.forEach(function(e) {
+      html += '<tr><td>' + (e.timestamp || '-') + '</td><td>' + (e.action || '-') + '</td><td>' + (e.user_id || 'system') + '</td><td><span class="badge ' + (e.risk_score > 70 ? 'badge-red' : e.risk_score > 30 ? 'badge-yellow' : 'badge-green') + '">' + (e.risk_score || 0) + '</span></td></tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  }).catch(function() { document.getElementById('audit-list').innerHTML = '<div class="empty">Audit API not available</div>'; });
+}
+
+function loadApiKeys() {
+  var team = document.getElementById('filter-team').value;
+  var url = '/api-keys' + (team ? '?teamId=' + team : '');
+  api('GET', url).then(function(data) {
+    var tbody = document.getElementById('apikey-table');
+    if (!data.apiKeys || data.apiKeys.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No API keys</td></tr>'; return; }
+    tbody.innerHTML = data.apiKeys.map(function(k) {
+      return '<tr><td>' + k.name + '</td><td><code>' + k.key_prefix + '...</code></td><td>' + (k.scopes || '') + '</td><td>' + k.rate_limit + '/min</td><td>' + k.quota_daily + '/day</td><td><span class="badge ' + (k.revoked_at ? 'badge-red' : k.enabled ? 'badge-green' : 'badge-yellow') + '">' + (k.revoked_at ? 'Revoked' : k.enabled ? 'Active' : 'Disabled') + '</span></td><td>' + (k.last_used_at || 'Never') + '</td><td><button class="btn btn-danger" onclick="revokeKey(\'' + k.id + '\')">Revoke</button></td></tr>';
+    }).join('');
+  });
+}
+
+function createApiKey() {
+  var scopes = document.getElementById('key-scopes').value.split(',').map(function(s) { return s.trim(); });
+  api('POST', '/api-keys', {
+    name: document.getElementById('key-name').value,
+    teamId: document.getElementById('key-team').value,
+    scopes: scopes,
+    quotaDaily: parseInt(document.getElementById('key-quota').value, 10),
+  }).then(function(data) {
+    closeModal('modal-create-key');
+    if (data.apiKey && data.apiKey.key) {
+      document.getElementById('key-result-value').textContent = data.apiKey.key;
+      document.getElementById('modal-key-result').classList.add('show');
+    }
+    loadApiKeys();
+  });
+}
+
+function revokeKey(id) {
+  if (!confirm('Revoke this API key? This cannot be undone.')) return;
+  api('POST', '/api-keys/' + id + '/revoke').then(function() { loadApiKeys(); });
+}
+
+function loadTeams() {
+  api('GET', '/teams').then(function(data) {
+    var tbody = document.getElementById('team-table');
+    if (!data.teams || data.teams.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No teams</td></tr>'; return; }
+    tbody.innerHTML = data.teams.map(function(t) {
+      return '<tr><td>' + t.name + '</td><td><code>' + t.slug + '</code></td><td><span class="badge badge-blue">' + t.plan + '</span></td><td>-</td><td>' + t.created_at + '</td><td><button class="btn btn-ghost" onclick="viewTeam(\'' + t.id + '\')">View</button></td></tr>';
+    }).join('');
+  });
+}
+
+function createTeam() {
+  api('POST', '/teams', {
+    name: document.getElementById('team-name').value,
+    plan: document.getElementById('team-plan').value,
+  }).then(function() { closeModal('modal-create-team'); loadTeams(); });
+}
+
+function loadSchedules() {
+  api('GET', '/scheduled-reports').then(function(data) {
+    var tbody = document.getElementById('schedule-table');
+    if (!data.schedules || data.schedules.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No scheduled reports</td></tr>'; return; }
+    tbody.innerHTML = data.schedules.map(function(s) {
+      return '<tr><td>' + s.name + '</td><td><span class="badge badge-blue">' + s.report_type + '</span></td><td><code>' + s.schedule + '</code></td><td>' + (s.last_run_at || 'Never') + '</td><td>' + (s.next_run_at || '-') + '</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost" onclick="runSchedule(\'' + s.id + '\')">Run Now</button></td></tr>';
+    }).join('');
+  });
+}
+
+function createSchedule() {
+  api('POST', '/scheduled-reports', {
+    name: document.getElementById('sched-name').value,
+    reportType: document.getElementById('sched-type').value,
+    schedule: document.getElementById('sched-cron').value,
+    teamId: document.getElementById('sched-team').value,
+  }).then(function() { closeModal('modal-create-schedule'); loadSchedules(); });
+}
+
+function runSchedule(id) {
+  api('POST', '/scheduled-reports/' + id + '/run').then(function() { loadSchedules(); });
+}
+
+function loadWebhooks() {
+  api('GET', '/webhooks').then(function(data) {
+    var tbody = document.getElementById('webhook-table');
+    if (!data.webhooks || data.webhooks.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No webhooks configured</td></tr>'; return; }
+    tbody.innerHTML = data.webhooks.map(function(w) {
+      return '<tr><td>' + w.name + '</td><td><code>' + w.url.substring(0, 40) + '</code></td><td>' + w.events + '</td><td><span class="badge ' + (w.enabled ? 'badge-green' : 'badge-red') + '">' + (w.enabled ? 'Yes' : 'No') + '</span></td><td>' + w.failure_count + '</td><td>' + (w.last_triggered_at || 'Never') + '</td><td><button class="btn btn-ghost" onclick="testWebhook(\'' + w.id + '\')">Test</button></td></tr>';
+    }).join('');
+  });
+}
+
+function testWebhook(id) {
+  api('POST', '/webhooks/' + id + '/test').then(function() { alert('Test event dispatched!'); });
+}
+
+function loadOrgs() {
+  api('GET', '/orgs').then(function(data) {
+    var tbody = document.getElementById('org-table');
+    if (!data.organizations || data.organizations.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No organizations</td></tr>'; return; }
+    tbody.innerHTML = data.organizations.map(function(o) {
+      return '<tr><td>' + (o.name || o.id) + '</td><td><code>' + (o.slug || '-') + '</code></td><td><span class="badge badge-blue">' + (o.plan || 'free') + '</span></td><td><span class="badge badge-green">' + (o.status || 'active') + '</span></td><td>' + (o.team_count || '-') + '</td><td>' + (o.created_at || '-') + '</td></tr>';
+    }).join('');
+  }).catch(function() { document.getElementById('org-table').innerHTML = '<tr><td colspan="6" class="empty">Organizations API not available</td></tr>'; });
+}
+
+function loadRbacMatrix() {
+  api('GET', '/rbac/roles').then(function(data) {
+    var el = document.getElementById('rbac-matrix');
+    if (!data.roles || Object.keys(data.roles).length === 0) { el.innerHTML = '<div class="empty">RBAC API not available</div>'; return; }
+    var roles = Object.keys(data.roles);
+    var perms = roles.reduce(function(acc, r) {
+      data.roles[r].forEach(function(p) { if (acc.indexOf(p) === -1) acc.push(p); });
+      return acc;
+    }, []);
+    var html = '<table><thead><tr><th>Permission</th>' + roles.map(function(r) { return '<th>' + r + '</th>'; }).join('') + '</tr></thead><tbody>';
+    perms.forEach(function(p) {
+      html += '<tr><td><code>' + p + '</code></td>' + roles.map(function(r) { return '<td>' + (data.roles[r].indexOf(p) !== -1 || data.roles[r].indexOf('*') !== -1 ? '✓' : '') + '</td>'; }).join('') + '</tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  }).catch(function() { document.getElementById('rbac-matrix').innerHTML = '<div class="empty">RBAC API not available</div>'; });
+}
+
+function loadAnalytics() {
+  api('GET', '/reports/dashboard').then(function(data) {
+    document.getElementById('an-detect').textContent = (data.trend && data.trend.length + ' days tracked') || 'no data';
+    document.getElementById('an-services').textContent = (data.topServices && data.topServices.length ? data.topServices.slice(0, 3).map(function(s) { return s.service + ' (' + s.events + ')'; }).join(', ') : 'no data');
+    document.getElementById('an-alerts').textContent = (data.alertSeverity && data.alertSeverity.length ? data.alertSeverity.map(function(a) { return a.severity + ': ' + a.c; }).join(', ') : 'no data');
+    document.getElementById('an-pii').textContent = (data.piiTypes && data.piiTypes.length ? data.piiTypes.slice(0, 4).map(function(p) { return p.piiType + ' (' + p.count + ')'; }).join(', ') : 'no data');
+  }).catch(function() { document.getElementById('an-detect').textContent = 'analytics unavailable'; });
+
+  api('GET', '/reports/summary').then(function(data) {
+    document.getElementById('an-report').textContent = data.markdown || 'No summary available';
+  }).catch(function() { document.getElementById('an-report').textContent = 'Summary report unavailable'; });
+}
+
+function loadPacks() {
+  api('GET', '/marketplace/packs').then(function(data) {
+    var el = document.getElementById('pack-list');
+    if (!data.packs || data.packs.length === 0) { el.innerHTML = '<div class="empty">No packs available</div>'; return; }
+    el.innerHTML = '<table><thead><tr><th>Pack</th><th>Category</th><th>Rules</th><th>Installed</th><th>Actions</th></tr></thead><tbody>' +
+      data.packs.map(function(p) {
+        return '<tr><td>' + p.name + ' <small><code>' + p.slug + '</code></small></td><td><span class="badge badge-blue">' + (p.category || '-') + '</span></td><td>' + p.rules_count + '</td><td><span class="badge ' + (p.installed ? 'badge-green' : 'badge-yellow') + '">' + (p.installed ? 'Installed' : 'Not installed') + '</span></td><td>' + (p.installed ? '' : '<button class="btn btn-ghost" onclick="installPack(\'' + p.id + '\')">Install</button>') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }).catch(function() { document.getElementById('pack-list').innerHTML = '<div class="empty">Marketplace API not available</div>'; });
+
+  api('GET', '/marketplace/templates').then(function(data) {
+    var el = document.getElementById('template-list');
+    if (!data.templates || data.templates.length === 0) { el.innerHTML = '<div class="empty">No templates available</div>'; return; }
+    el.innerHTML = '<table><thead><tr><th>Template</th><th>Action</th><th>Category</th><th>Apply</th></tr></thead><tbody>' +
+      data.templates.map(function(t) {
+        return '<tr><td>' + t.name + ' <small><code>' + t.slug + '</code></small></td><td><span class="badge badge-yellow">' + (t.action || '-') + '</span></td><td>' + (t.category || '-') + '</td><td><button class="btn btn-ghost" onclick="applyTemplate(\'' + t.id + '\')">Apply</button></td></tr>';
+      }).join('') + '</tbody></table>';
+  }).catch(function() { /* ignore */ });
+}
+
+function installPack(id) {
+  api('POST', '/marketplace/packs/' + id + '/install').then(function() { loadPacks(); });
+}
+function applyTemplate(id) {
+  api('POST', '/marketplace/templates/' + id + '/apply').then(function() { alert('Policy template applied!'); });
+}
+
+// Load overview on startup
+loadOverview();
+</script>
+</body>
+</html>
