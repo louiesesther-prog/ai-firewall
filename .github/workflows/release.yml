@@ -1,0 +1,61 @@
+name: Build Release Artifact
+
+# Builds the distributable package (.tgz) and creates/updates a GitHub
+# Release with it attached, whenever a version tag like vX.Y.Z is pushed.
+# Uses the auto-provided GITHUB_TOKEN — no npm account or secrets required.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Run tests
+        run: node test-report.mjs
+
+      - name: Build package tarball
+        run: npm pack
+
+      - name: Capture version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Create / update GitHub Release with artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            ai-firewall ${{ steps.version.outputs.version }}
+
+            Install from the attached tarball (no npm account needed):
+            ```bash
+            tar -xzf ai-firewall-${{ steps.version.outputs.version }}.tgz
+            cd package
+            node cli.js --help
+            node cli.js license          # open-core tier status
+            ```
+
+            Or run the server / self-host:
+            ```bash
+            npm install           # installs express + sql.js
+            node server.js
+            ```
+          generate_release_notes: false
+          files: |
+            ai-firewall-*.tgz
