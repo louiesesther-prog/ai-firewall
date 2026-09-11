@@ -125,7 +125,7 @@ function render(size) {
 }
 
 const targets = process.argv.slice(2);
-const sizes = [16, 32, 48, 96, 128];
+const sizes = [16, 32, 48, 96, 128, 300, 512];
 for (const target of targets) {
   for (const s of sizes) {
     const outPath = path.join(target, `icon${s}.png`);
