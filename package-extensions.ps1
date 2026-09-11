@@ -32,12 +32,12 @@ foreach ($p in $platforms.Keys) {
     if (Test-Path -LiteralPath $mp) { Copy-Item -LiteralPath $mp -Destination $tmp }
   }
 
-  # Copy icons (PNG preferred for store; include SVG too)
+  # Copy icons (PNG only — all manifests reference PNG; SVGs are source masters)
   $icons = Join-Path $src "icons"
   if (Test-Path -LiteralPath $icons) {
     $icoDir = Join-Path $tmp "icons"
     New-Item -ItemType Directory -Path $icoDir -Force | Out-Null
-    Get-ChildItem -Path $icons -File | Copy-Item -Destination $icoDir
+    Get-ChildItem -Path $icons -File -Filter "*.png" | Copy-Item -Destination $icoDir
   }
 
   $zip = Join-Path $out "ai-firewall-$p.zip"
