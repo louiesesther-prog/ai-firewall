@@ -1,0 +1,55 @@
+name: Build Store Extension ZIPs
+
+# Rebuilds dist/*.zip (store-ready extension packages) on every push to main
+# and commits them back, so ai-firewall.org/dist/*.zip always serves the
+# latest version for manual download / submission.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-zips:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate manifests and icon references
+        run: node -e "
+          const fs = require('fs');
+          for (const d of ['extension','edge','firefox','safari']) {
+            const m = require('./' + d + '/manifest.json');
+            for (const s of ['16','48','128']) {
+              if (!m.icons || !fs.existsSync(d + '/' + m.icons[s])) throw new Error(d + ': missing icon ' + s);
+            }
+            const bg = (m.background && (m.background.service_worker || (m.background.scripts||[])[0]));
+            for (const f of [bg, 'content.js', 'popup.html', m.action.default_popup]) {
+              if (!fs.existsSync(d + '/' + f)) throw new Error(d + ': missing ' + f);
+            }
+            console.log('OK ' + d + ' v' + m.version);
+          }
+          "
+
+      - name: Build ZIPs
+        shell: pwsh
+        run: ./package-extensions.ps1
+
+      - name: Commit fresh packages
+        run: |
+          git add dist/
+          if git diff --cached --quiet; then
+            echo "No changes to dist/"
+          else
+            git -c user.name="CI Bot" -c user.email="actions@users.noreply.github.com" \
+              commit -m "ci: rebuild store extension ZIPs"
+            git push
+          fi

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — AI Personal Firewall</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif; background: #0a0a1a; color: #e8e8f0; line-height: 1.7; }
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,26,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid #2a2a5a; }
+.nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
+.nav-logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; text-decoration: none; color: #e8e8f0; }
+.nav-links { display: flex; gap: 24px; align-items: center; }
+.nav-links a { color: #8888aa; text-decoration: none; font-size: 14px; transition: color .2s; }
+.nav-links a:hover { color: #e8e8f0; }
+header { padding: 64px 0 24px; }
+header h1 { font-size: clamp(30px,4vw,42px); margin-bottom: 10px; background: linear-gradient(135deg, #fff 30%, #667eea 70%, #00d9ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+header p { color: #8888aa; font-size: 16px; }
+h2 { font-size: 22px; margin: 36px 0 14px; color: #fff; }
+h3 { font-size: 17px; margin: 24px 0 8px; color: #e8e8f0; }
+p { color: #9a9ab5; font-size: 15px; margin-bottom: 14px; }
+ul, ol { color: #9a9ab5; font-size: 15px; margin: 0 0 14px 24px; }
+li { margin-bottom: 6px; }
+a { color: #8b9cf7; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.card { background: #16163a; border: 1px solid #2a2a5a; border-radius: 12px; padding: 28px; }
+.meta { color: #555577; font-size: 14px; margin-bottom: 28px; }
+.badge { display: inline-block; background: rgba(102,126,234,.15); color: #8b9cf7; border: 1px solid #2a2a5a; padding: 4px 12px; border-radius: 20px; font-size: 13px; margin-bottom: 20px; }
+footer { border-top: 1px solid #2a2a5a; padding: 32px 0; margin-top: 56px; text-align: center; color: #555577; font-size: 13px; }
+footer a { color: #8888aa; text-decoration: none; }
+@media (max-width: 640px) { .nav-links { gap: 14px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container nav-inner">
+    <a href="landing.html" class="nav-logo">
+      <svg viewBox="0 0 28 28" width="26" height="26" fill="none"><rect width="28" height="28" rx="5" fill="#667eea"/><path d="M14 6 L22 14 L14 22 L6 14 Z" fill="white" opacity=".9"/><rect x="10" y="14" width="8" height="8" fill="white" opacity=".9"/></svg>
+      AI Firewall
+    </a>
+    <div class="nav-links">
+      <a href="landing.html">Home</a>
+      <a href="landing.html#downloads">Download</a>
+      <a href="landing.html#docs">Docs</a>
+      <a href="landing.html#pricing">Pricing</a>
+    </div>
+  </div>
+</nav>
+
+<header>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p>AI Personal Firewall &mdash; for the browser extension, CLI, and self-hosted server.</p>
+  </div>
+</header>
+
+<main class="container">
+  <div class="card">
+  <span class="badge">Last updated: June 2026</span>
+
+  <h2>tl;dr</h2>
+  <p>Everything you type is processed <strong>100% locally on your device</strong>. We operate no servers for masking. We do not collect, sell, or share your data. Ever.</p>
+
+  <h2>1. Data Collection</h2>
+  <p>AI Personal Firewall <strong>does not collect, transmit, or store</strong> any personally identifiable information (PII) on remote servers. All detection and masking occurs entirely on your local device.</p>
+
+  <h3>What the extension accesses</h3>
+  <ul>
+    <li><strong>Text typed into AI chat inputs</strong> (ChatGPT, Claude, Gemini, Copilot, and other supported platforms). This text is read only to detect and mask PII before it is sent to the AI provider.</li>
+    <li><strong>Page content</strong> on supported AI chat domains, solely to locate input fields and attach PII detection listeners.</li>
+  </ul>
+
+  <h3>What is stored locally</h3>
+  <ul>
+    <li><strong>Usage statistics</strong> (number of requests scrubbed, count of PII items detected per type) are saved to your browser's local extension storage. These stats never leave your browser and can be cleared anytime via the "Clear Statistics" button in the extension popup.</li>
+  </ul>
+
+  <h2>2. How Data Is Processed</h2>
+  <ol>
+    <li>When you type into an AI chat input, the extension scans the text using client-side pattern matching and Luhn checksum validation.</li>
+    <li>Detected PII is replaced with placeholder tokens (e.g. <code>[EMAIL_ADDR_1]</code>) or realistic fake data (if realistic mode is enabled).</li>
+    <li>The masked text is then sent to the AI provider &mdash; your sensitive data never reaches their servers.</li>
+    <li>On the AI response, the extension restores original values from a local map that is discarded when the page is refreshed.</li>
+  </ol>
+
+  <h2>3. Data Sharing</h2>
+  <p><strong>No data is shared with any third party.</strong> The extension makes no network requests of its own. It only modifies text within your browser before it is sent to the AI platform you are using.</p>
+
+  <h2>4. Optional: Privacy Route (VPN mode)</h2>
+  <p>The extension includes an optional <strong>Privacy Route</strong> feature that can reroute traffic to supported AI-chat sites through a proxy/VPN endpoint <em>you</em> configure. When enabled:</p>
+  <ul>
+    <li>The proxy <strong>host, port, and protocol you enter are stored only on your device</strong> and never transmitted to us.</li>
+    <li>Your traffic to the supported AI sites is routed through that proxy; all other sites use your normal connection.</li>
+    <li><strong>We do not provide, operate, or maintain any proxy/VPN servers.</strong> You supply your own endpoint. Any encryption is provided by the proxy protocol you choose, not by us.</li>
+    <li>WebRTC/DNS leak protection is applied while the tunnel is active.</li>
+    <li>Safari does not support proxy routing, so Privacy Route is disabled there.</li>
+  </ul>
+
+  <h2>5. Data Retention</h2>
+  <ul>
+    <li>PII maps are held in memory only and cleared on page navigation or refresh.</li>
+    <li>Statistics stored in browser storage persist across sessions but are cleared when you click "Clear Statistics."</li>
+  </ul>
+
+  <h2>6. Security</h2>
+  <p>Because all detection and masking occurs client-side with no data egress, there is no server-side data breach risk or unauthorized remote access to your PII.</p>
+
+  <h2>7. Changes to This Policy</h2>
+  <p>If this policy is updated, the version number and "Last updated" date at the top will reflect the change.</p>
+
+  <h2>8. Contact</h2>
+  <p>For questions or concerns, open an issue at <a href="https://github.com/louiesesther-prog/ai-firewall/issues" target="_blank">github.com/louiesesther-prog/ai-firewall/issues</a>.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>AI Personal Firewall &mdash; MIT Licensed &mdash; Built with &#9829; for privacy</p>
+    <p style="margin-top:6px"><a href="landing.html">Home</a> &middot; <a href="privacy.html">Privacy Policy</a> &middot; <a href="support.html">Support</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
