@@ -85,7 +85,7 @@
 ## Edge Add-ons
 
 **Short description (140 chars max):**
-> Auto-detect and mask 30+ PII types in AI chats. 100% local. Luhn, confidence scoring, context heuristics. Protects ChatGPT, Claude, Gemini & more.
+> Auto-detect & mask 30+ PII types in AI chats. 100% local. Luhn-validated CC. For ChatGPT, Claude, Gemini, Copilot & more.
 
 **Detailed description:**
 
